@@ -15,7 +15,7 @@ Doggy OS is a LUA-based operating system for CC Tweaked, designed for use within
 3. Run `startup.lua` to boot Doggy OS and begin using the system.
 
 ## Usage
-After installation, simply run the system with the `startup.lua` script. The operating system will boot and guide you through the necessary steps, ensuring security checks and access control throughout.
+After installation, Doggy OS will automatically reboot to the computer setup to setup your new user account.
 
 ## Security
 Doggy OS comes with various security measures to safeguard the system:
