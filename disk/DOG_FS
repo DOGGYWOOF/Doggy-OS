@@ -90,7 +90,7 @@ else
         local user_input = read()
 
         if user_input:lower() == 'y' then
-            runProgram()
+            shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/installgui")
         elseif user_input:lower() == 'n' then
             term.clear()
             term.setCursorPos(1, 1)
