@@ -1,0 +1,26 @@
+-- Define paths
+local startupPath = "/disk/boot/startup"
+local newStartupPath = "/disk/boot/error"
+local rebootCommand = "/disk/ACPI/soft-reboot-load"
+
+-- Function to replace the startup file
+local function replaceStartup()
+    -- Open the startup file for writing
+    local file = fs.open(startupPath, "w")
+    if file then
+        -- Write the new startup path to the file
+        file.writeLine("shell.run('" .. newStartupPath .. "')")
+        file.close()
+    else
+        print("Error: Could not open the startup file for writing.")
+    end
+end
+
+-- Function to run the reboot command
+local function reboot()
+    shell.run(rebootCommand)
+end
+
+-- Execute the functions
+replaceStartup()
+reboot()

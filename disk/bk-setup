@@ -1,0 +1,92 @@
+-- WARNING: Use this script at your own risk. 
+-- Ensure you have a backup before running it.
+
+-- Doggy OS First Admin Account Setup Script
+
+-- Function to delete all directories in /disk/users/ except "root"
+local function deleteDirectories()
+    local usersPath = "/disk/users/"
+
+    -- Get a list of all directories
+    local directories = fs.list(usersPath)
+
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    term.setTextColor(colors.red)
+    print("Welcome to Doggy OS\n")
+    term.setTextColor(colors.white)
+
+    print("Deleting unnecessary directories...\n")
+
+    for _, dir in pairs(directories) do
+        if dir ~= "root" then
+            fs.delete(usersPath .. dir)
+        end
+    end
+
+    print("\nDeletion completed.")
+end
+
+-- Function to create /disk/users/ directory
+local function createUsersDirectory()
+    local usersPath = "/disk/users/"
+
+    -- Recreate /disk/users/ directory
+    fs.makeDir(usersPath)
+
+    print("\nCreated /disk/users/ directory.")
+end
+
+-- Function to set up the first admin account
+local function setupFirstAdminAccount()
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    term.setTextColor(colors.green)
+    print("Doggy OS First Admin Account Setup\n")
+    term.setTextColor(colors.white)
+
+    print("Enter your desired Admin username:")
+    local username = read()
+
+    print("\nEnter a secure password for \"" .. username .. "\":")
+    local password = read("*")
+
+    local userPath = "/disk/users/" .. username
+
+    -- Create user directory
+    fs.makeDir(userPath)
+
+    -- Store password in a file
+    local passwordFile = fs.open(userPath .. "/password.txt", "w")
+    passwordFile.write(password)
+    passwordFile.close()
+
+    -- Create admin.txt file
+    local adminFile = fs.open(userPath .. "/admin.txt", "w")
+    adminFile.close()
+
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    term.setTextColor(colors.yellow)
+    print("Setting up first Admin account...\n")
+    term.setTextColor(colors.white)
+
+    os.sleep(5)
+end
+
+-- Main program
+deleteDirectories()
+createUsersDirectory()
+setupFirstAdminAccount()
+
+-- Run /disk/boot/error instead of /disk/boot/BIOS
+term.clear()
+term.setCursorPos(1, 1)
+
+term.setTextColor(colors.blue)
+print("Running Doggy OS...\n")
+term.setTextColor(colors.white)
+shell.run("/disk/boot/error")

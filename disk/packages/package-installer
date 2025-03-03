@@ -1,0 +1,33 @@
+-- Function to download code from Pastebin
+local function downloadFromPastebin(code, programName)
+    local url = "https://pastebin.com/raw/" .. code -- Constructing the Pastebin URL
+    local response = http.get(url) -- Fetching the content from Pastebin
+
+    if response then
+        local content = response.readAll() -- Reading the content of the script
+        response.close()
+
+        -- Writing the downloaded content to a file named with the provided program name
+        local path = "/disk/packages/" .. programName
+        local file = fs.open(path, "w")
+        file.write(content)
+        file.close()
+        print("Script downloaded as '" .. programName .. "' in '/disk/packages'")
+    else
+        term.clear()
+        term.setCursorPos(1,1)
+        print("This operation has failed...")
+        sleep(4)
+        shell.run("/disk/os/gui")
+    end
+end
+
+-- Prompting the user to enter the Pastebin code and desired program name
+print("Please enter the Pastebin code of the script you want to download:")
+local code = read()
+
+print("Enter the name for the program:")
+local programName = read()
+
+-- Calling the function to download code from Pastebin using the entered code and program name
+downloadFromPastebin(code, programName)

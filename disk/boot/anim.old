@@ -1,0 +1,100 @@
+-- Function to draw a bordered box
+local function drawBorderedBox(x, y, width, height, borderColor, bgColor)
+    paintutils.drawBox(x, y, x + width - 1, y + height - 1, borderColor)
+    paintutils.drawFilledBox(x + 1, y + 1, x + width - 2, y + height - 2, bgColor)
+end
+
+-- Function to draw centered text
+local function drawCenteredText(y, text, textColor, bgColor)
+    local w, h = term.getSize()
+    local x = math.floor((w - #text) / 2) + 1
+    term.setCursorPos(x, y)
+    term.setTextColor(textColor)
+    term.setBackgroundColor(bgColor)
+    term.write(text)
+end
+
+-- Function to display the splash screen with dog image and loading bar
+local function showSplashScreen()
+    local bgColor = colors.gray  -- Adjusted middle color around the dog image
+
+    term.setBackgroundColor(colors.blue)
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    local screenWidth, screenHeight = term.getSize()
+
+    -- Draw outer border and background
+    drawBorderedBox(1, 1, screenWidth, screenHeight, colors.lightGray, colors.blue)
+
+    -- Draw inner filled area
+    paintutils.drawFilledBox(2, 2, screenWidth - 1, screenHeight - 1, colors.gray)
+
+    -- Draw title bar
+    drawBorderedBox(2, 2, screenWidth - 1, 3, colors.lightGray, colors.lightGray)
+
+    -- Draw title text
+    drawCenteredText(3, "Doggy OS", colors.blue, colors.lightGray)
+
+    -- Draw ASCII art dog image with adjusted background color
+    local dogImage = {
+        "     |\\_/|                  ",
+        "     | @ @   Woof!           ",
+        "     |   <>              _   ",
+        "     |  _/\\------____ ((| |))",
+        "     |               `--' |  ",
+        " _____|_       ___|   |___.' ",
+        "/_/_____/____/_______|       "
+    }
+
+    local dogX = math.floor(screenWidth / 2) - 11
+    local dogY = math.floor(screenHeight / 2) - 5  -- Adjusted position for the dog image
+
+    term.setTextColor(colors.yellow)
+    for i, line in ipairs(dogImage) do
+        term.setCursorPos(dogX, dogY + i)
+        term.setBackgroundColor(bgColor)  -- Set background color around the dog image
+        term.write(line)
+    end
+
+    -- Loading bar parameters
+    local barWidth = 30
+    local barHeight = 1  -- Height of the loading bar
+    local barX = math.floor((screenWidth - barWidth) / 2)
+    local barY = math.floor(screenHeight / 2) + 6  -- Adjusted position for the loading bar
+
+    -- Draw box around loading bar with a different border color
+    drawBorderedBox(barX - 1, barY - 1, barWidth + 2, barHeight + 2, colors.blue, colors.gray)
+
+    -- Function to update loading bar (original speed)
+    local function updateLoadingBar(progress)
+        local fillWidth = math.floor(barWidth * progress)
+        term.setCursorPos(barX, barY)
+        term.setBackgroundColor(colors.lightGray)
+        term.write(string.rep(" ", fillWidth))
+        term.setBackgroundColor(colors.gray)
+        term.write(string.rep(" ", barWidth - fillWidth))
+    end
+
+    -- Simulate loading process (original speed)
+    local totalSteps = 20  -- Total steps for loading animation
+    for i = 1, totalSteps do
+        local progress = i / totalSteps
+        updateLoadingBar(progress)
+        os.sleep(0.2)  -- Original speed for loading animation
+    end
+
+    -- Run /disk/os/lock.lua after loading completes
+    term.setBackgroundColor(colors.black)
+    shell.run("/disk/os/lock.lua")
+
+    -- Continue with normal boot process
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
+    term.clear()
+    term.setCursorPos(1, 1)
+    print("No issues detected. Continuing boot process...")
+end
+
+-- Example usage: Display splash screen
+showSplashScreen()

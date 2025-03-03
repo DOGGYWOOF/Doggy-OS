@@ -1,0 +1,32 @@
+-- Press Enter within 3 seconds to run recovery, else run startup
+
+-- Display prompt
+term.clear()
+term.setCursorPos(1,1)
+print("======================")
+print("    N3K0 UEFI 13.0")
+print("======================")
+print("")
+print("Press Enter for ROM Based Setup")
+
+local timerID = os.startTimer(1)  -- Set a 3-second timer
+
+-- Function to handle events
+local function eventHandler()
+  while true do
+    local event, param = os.pullEvent()
+    if event == "key" and param == keys.enter then
+      -- User pressed Enter, run recovery
+      os.cancelTimer(timerID)  -- Cancel the timer
+      shell.run("/disk/boot/Recovery")
+      break
+    elseif event == "timer" and param == timerID then
+      -- Timer expired, run startup
+      shell.run("/disk/boot/boot-animation")
+      break
+    end
+  end
+end
+
+-- Start event handling
+parallel.waitForAny(eventHandler)

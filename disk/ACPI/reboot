@@ -1,0 +1,72 @@
+-- Doggy OS Shutdown Screen with Advanced Spinner
+local w, h = term.getSize()
+
+-- Function to center text horizontally
+local function centerText(y, text)
+    local x = math.floor((w - #text) / 2)
+    term.setCursorPos(x, y)
+    term.write(text)
+end
+
+-- Function to draw the spinner animation
+local function drawSpinner(x, y, duration)
+    local spinnerFrames = {
+        "[    ]",
+        "[=   ]",
+        "[==  ]",
+        "[=== ]",
+        "[====]",
+        "[ ===]",
+        "[  ==]",
+        "[   =]",
+        "[    ]",
+        "[   =]",
+        "[  ==]",
+        "[ ===]",
+        "[====]",
+        "[=== ]",
+        "[==  ]",
+        "[=   ]"
+    }
+    local delay = 0.1
+    local frameCount = #spinnerFrames
+
+    local spinnerX = x
+    local spinnerY = y
+
+    local spinnerIndex = 1
+    local startTime = os.clock()
+    while os.clock() - startTime < duration do
+        term.setCursorPos(spinnerX, spinnerY)
+        term.write(spinnerFrames[spinnerIndex])
+
+        spinnerIndex = spinnerIndex % frameCount + 1
+        os.sleep(delay)
+    end
+end
+
+-- Function to draw the shutdown screen
+local function drawShutdownScreen()
+    term.setBackgroundColor(colors.black)
+    term.clear()
+
+    term.setTextColor(colors.white)
+    centerText(math.floor(h / 2), "Doggy OS is restarting...")
+
+    -- Calculate spinner position
+    local spinnerX = math.floor(w / 2) - 3
+    local spinnerY = math.floor(h / 2) + 2
+
+    -- Start spinner animation
+    drawSpinner(spinnerX, spinnerY, 5)  -- Spinner runs for 5 seconds
+end
+
+-- Main program
+drawShutdownScreen()
+
+-- Clear screen after shutdown
+term.setBackgroundColor(colors.black)
+term.clear()
+
+-- Shutdown the computer
+os.reboot()

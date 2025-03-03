@@ -1,0 +1,7 @@
+term.clear()
+term.setCursorPos(1,1)
+print("====================================")
+print("    Doggy OS is Shutting Down...")
+print("====================================")
+sleep(3)
+os.shutdown()

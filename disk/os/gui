@@ -1,0 +1,230 @@
+os.pullEvent = os.pullEventRaw
+
+local w, h = term.getSize()
+local nOption = 1
+local isStartMenuOpen = false
+local isPowerMenuOpen = false
+local menuOptions = {"Command", "Programs", "Power Menu"}
+local powerOptions = {"Shutdown", "Reboot", "Sign Out", "Cancel"}
+
+-- Create windows for taskbar, start menu, and power menu
+local taskbar = window.create(term.current(), 1, h, w, 1)
+local startMenu = window.create(term.current(), 1, h - 10, 20, 10, false)
+local powerMenu = window.create(term.current(), math.floor(w / 2) - 12, math.floor(h / 2) - 7, 24, 15, false)
+
+-- Helper function to draw the taskbar with the current time
+local function drawTaskbar()
+    taskbar.setBackgroundColor(colors.green)
+    taskbar.clear()
+    taskbar.setCursorPos(1, 1)
+    taskbar.setTextColor(colors.white)
+    taskbar.write("[ Start ]")
+
+    -- Display the current time on the right side
+    local currentTime = os.date("%H:%M:%S")
+    local timeX = w - string.len(currentTime) - 1
+    taskbar.setCursorPos(timeX, 1)
+    taskbar.write(currentTime)
+end
+
+-- Helper function to draw the start menu
+local function drawStartMenu()
+    if not isStartMenuOpen then
+        startMenu.setVisible(false)
+        return
+    end
+
+    startMenu.setVisible(true)
+    startMenu.setBackgroundColor(colors.green)
+    startMenu.clear()
+
+    startMenu.setTextColor(colors.white)
+    startMenu.setCursorPos(2, 1)
+    startMenu.write("=== Start Menu ===")
+
+    for i, option in ipairs(menuOptions) do
+        startMenu.setCursorPos(2, 2 + i)
+        if nOption == i then
+            startMenu.setTextColor(colors.black)
+            startMenu.setBackgroundColor(colors.white)
+            startMenu.write("[ " .. option .. " ]")
+            startMenu.setBackgroundColor(colors.green)
+            startMenu.setTextColor(colors.white)
+        else
+            startMenu.write("[ " .. option .. " ]")
+        end
+    end
+end
+
+-- Helper function to draw the power menu
+local function drawPowerMenu()
+    if not isPowerMenuOpen then
+        powerMenu.setVisible(false)
+        return
+    end
+
+    powerMenu.setVisible(true)
+    powerMenu.setBackgroundColor(colors.black)
+    powerMenu.clear()
+
+    powerMenu.setTextColor(colors.white)
+    powerMenu.setCursorPos(2, 1)
+    powerMenu.write("=== Power Menu ===")
+
+    for i, option in ipairs(powerOptions) do
+        powerMenu.setCursorPos(2, 3 + i)
+        if nOption == i then
+            powerMenu.setTextColor(colors.black)
+            powerMenu.setBackgroundColor(colors.white)
+            powerMenu.write("[ " .. option .. " ]")
+            powerMenu.setBackgroundColor(colors.black)
+            powerMenu.setTextColor(colors.white)
+        else
+            powerMenu.write("[ " .. option .. " ]")
+        end
+    end
+end
+
+-- Helper function to draw ASCII art in the center
+local function drawASCIIArt()
+    local art = {
+        "     |\\_/|                  ",
+        "     | @ @   Woof!         ",
+        "     |   <>              _  ",
+        "     |  _/\\------____ ((| |))",
+        "     |               `--' |   ",
+        " ____|_       ___|   |___.'  ",
+        "/_/_____/____/_______|        "
+    }
+    local startX = math.floor((w - 26) / 2)  -- Centering the art horizontally
+    local startY = math.floor((h - #art) / 2)  -- Centering the art vertically
+
+    term.setTextColor(colors.white)
+    for i, line in ipairs(art) do
+        term.setCursorPos(startX, startY + i - 1)
+        term.write(line)
+    end
+end
+
+-- Function to redraw the entire UI
+local function redrawUI()
+    term.setBackgroundColor(colors.blue)
+    term.clear()
+    drawTaskbar()
+    drawASCIIArt()  -- Draw ASCII art
+    if isPowerMenuOpen then
+        drawPowerMenu()
+    else
+        drawStartMenu()
+    end
+end
+
+-- Initial UI drawing
+redrawUI()
+
+-- Start the timer for updating the time every second
+local timerId = os.startTimer(1)
+
+-- Function to handle mouse clicks
+local function handleMouseClick(x, y)
+    if y == h and x >= 1 and x <= 7 then
+        isStartMenuOpen = not isStartMenuOpen
+        isPowerMenuOpen = false
+        redrawUI()
+    elseif isStartMenuOpen and x >= 1 and x <= 20 and y >= h - 10 and y <= h - 1 then
+        local clickedOption = y - (h - 10) - 1
+        if clickedOption >= 1 and clickedOption <= #menuOptions then
+            nOption = clickedOption
+            if nOption == 3 then
+                isStartMenuOpen = false
+                isPowerMenuOpen = true
+                redrawUI()
+            else
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Function to manage running programs and power options
+local function runProgramOrAction(option)
+    -- Change to black background and white text
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
+    term.clear()
+
+    if isPowerMenuOpen then
+        if option == 1 then
+            shell.run("/disk/ACPI/shutdown")  -- Shutdown
+        elseif option == 2 then
+            shell.run("/disk/ACPI/reboot")    -- Reboot
+        elseif option == 3 then
+            shell.run("/disk/ACPI/logoff")    -- Sign Out
+        elseif option == 4 then
+            shell.run("/disk/os/gui")          -- Run GUI when Cancel is selected
+            return true
+        end
+        return true  -- Indicate an action was taken
+    end
+
+    if option == 1 then
+        shell.run("/disk/os/home.lua")
+    elseif option == 2 then
+        shell.run("/disk/os/programs")
+    end
+    
+    return false  -- Indicate no action was taken
+end
+
+-- Main event handling loop
+while true do
+    local e, p1, p2, p3 = os.pullEvent()
+
+    if e == "mouse_click" then
+        local button, x, y = p1, p2, p3
+        if handleMouseClick(x, y) then
+            runProgramOrAction(nOption)  -- Execute action
+        end
+    elseif e == "key" and (isStartMenuOpen or isPowerMenuOpen) then
+        local key = p1
+
+        if key == keys.up then
+            if nOption > 1 then
+                nOption = nOption - 1
+            else
+                nOption = #menuOptions
+            end
+            redrawUI()
+        elseif key == keys.down then
+            if isPowerMenuOpen then
+                if nOption < #powerOptions then
+                    nOption = nOption + 1
+                else
+                    nOption = 1 -- Wrap around to "Shutdown"
+                end
+            else
+                if nOption < #menuOptions then
+                    nOption = nOption + 1
+                else
+                    nOption = 1
+                end
+            end
+            redrawUI()
+        elseif key == keys.enter then
+            if runProgramOrAction(nOption) then
+                -- Do nothing, action taken
+            else
+                break  -- Exit loop only if no action taken
+            end
+        end
+    elseif e == "timer" and p1 == timerId then
+        drawTaskbar()  -- Redraw taskbar to update time
+        timerId = os.startTimer(1)  -- Reset the timer for the next second
+    end
+end
+
+-- Final screen settings before running the selected action
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
+term.clear()

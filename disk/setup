@@ -1,0 +1,157 @@
+-- WARNING: Use this script at your own risk.
+-- Ensure you have a backup before running it.
+
+-- Doggy OS First Admin Account Setup Script with Clean UI
+
+-- Function to clear the screen and set up UI
+local function setupUI(title, subtitle)
+    term.clear()
+    term.setCursorPos(1, 1)
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.black)
+    term.clear()
+
+    -- Center the title
+    local w, h = term.getSize()
+    local x = math.floor((w - #title) / 2)
+    term.setCursorPos(x, 2)
+    term.setTextColor(colors.cyan)
+    print(title)
+
+    -- Subtitle below the title
+    local x_subtitle = math.floor((w - #subtitle) / 2)
+    term.setCursorPos(x_subtitle, 4)
+    term.setTextColor(colors.lightGray)
+    print(subtitle)
+
+    -- Draw horizontal line for separation
+    term.setCursorPos(1, 6)
+    term.setTextColor(colors.gray)
+    print(string.rep("-", w))
+end
+
+-- Function to draw an input box with grey shading from [ to ]
+local function drawInputBox(x, y, width)
+    term.setBackgroundColor(colors.gray)  -- Set background color to grey
+    term.setTextColor(colors.lightBlue)  -- Set text color to light blue
+
+    -- Draw the left bracket and shaded area
+    term.setCursorPos(x, y)
+    term.write("[")
+    term.write(string.rep(" ", width - 2))  -- Fill with spaces for the shaded area
+
+    -- Draw the right bracket
+    term.write("]")
+
+    -- Shadow effect (bottom-right)
+    term.setTextColor(colors.lightGray)
+    term.setCursorPos(x + width, y)
+    term.write(" ")
+end
+
+-- Function to get input with a clean input box
+local function readWithInputBox(x, y, width, isPassword)
+    -- Draw the input box
+    drawInputBox(x, y, width)
+
+    -- Move cursor inside the box for typing
+    term.setCursorPos(x + 1, y)
+
+    -- Capture input (either password or regular)
+    if isPassword then
+        return read("*")
+    else
+        return read()
+    end
+end
+
+-- Function to delete all directories in /disk/users/ except "root"
+local function deleteDirectories()
+    local usersPath = "/disk/users/"
+
+    -- Get a list of all directories
+    local directories = fs.list(usersPath)
+
+    setupUI("Doggy OS Setup", "Cleaning up old user directories")
+
+    for _, dir in pairs(directories) do
+        if dir ~= "root" then
+            fs.delete(usersPath .. dir)
+        end
+    end
+
+    print("\nUnnecessary directories deleted.")
+    os.sleep(2)
+end
+
+-- Function to create /disk/users/ directory
+local function createUsersDirectory()
+    local usersPath = "/disk/users/"
+
+    -- Recreate /disk/users/ directory
+    fs.makeDir(usersPath)
+
+    setupUI("Doggy OS Setup", "Setting up the users directory")
+    print("\nCreated /disk/users/ directory.")
+    os.sleep(2)
+end
+
+-- Function to set up the first admin account
+local function setupFirstAdminAccount()
+    setupUI("Doggy OS First Admin Setup", "Please provide Admin credentials")
+
+    -- Enter username
+    term.setCursorPos(3, 8)
+    print("Admin Username:")
+    local username = readWithInputBox(3, 9, 20, false)
+
+    -- Enter password
+    term.setCursorPos(3, 12)
+    print("Admin Password:")
+    local password = readWithInputBox(3, 13, 20, true)
+
+    -- Store the user details in the directory
+    local userPath = "/disk/users/" .. username
+
+    -- Create user directory
+    fs.makeDir(userPath)
+
+    -- Store password in a file
+    local passwordFile = fs.open(userPath .. "/password.txt", "w")
+    passwordFile.write(password)
+    passwordFile.close()
+
+    -- Create admin.txt file
+    local adminFile = fs.open(userPath .. "/admin.txt", "w")
+    adminFile.close()
+
+    setupUI("Doggy OS Setup", "Configuring admin account")
+    print("Admin account for '" .. username .. "' has been successfully created.")
+    os.sleep(3)
+end
+
+-- Function to label the computer
+local function labelComputer()
+    setupUI("Doggy OS Setup", "Labeling your computer")
+
+    term.setCursorPos(3, 8)
+    print("Enter a name for this computer:")
+    local label = readWithInputBox(3, 9, 20, false)
+
+    -- Set the computer label
+    os.setComputerLabel(label)
+
+    setupUI("Doggy OS Setup", "Finalizing setup")
+    print("Computer labeled as \"" .. label .. "\".")
+    os.sleep(2)
+end
+
+-- Main program
+deleteDirectories()
+createUsersDirectory()
+setupFirstAdminAccount()
+labelComputer()
+
+-- Run /disk/boot/error instead of /disk/boot/BIOS
+setupUI("Running Doggy OS", "Please wait...")
+shell.run("/disk/boot/error")

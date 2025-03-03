@@ -1,0 +1,60 @@
+-- Server side (Updated to display only critical information)
+-- Make sure the modem is open on the side you're using
+rednet.open("left") -- Replace "top" with the side where your modem is placed
+
+-- Function to display critical server status on the right monitor
+local function displayCriticalInfo(criticalMessage, serverID)
+  local monitor = peripheral.wrap("right") -- Replace "right" with the side where your monitor is connected
+  
+  monitor.clear()
+  monitor.setCursorPos(1, 1)
+  monitor.write("Server ID: " .. tostring(serverID))
+  monitor.setCursorPos(1, 2)
+  monitor.write("Server Online")
+  monitor.setCursorPos(1, 4)
+  monitor.write("Critical: " .. criticalMessage)
+  
+  -- Keep displaying the critical info
+  while true do
+    sleep(2) -- Adjust the duration between updates
+    monitor.setCursorPos(1, 4)
+    monitor.write("                           ") -- Clear previous critical message
+    monitor.setCursorPos(1, 4)
+    monitor.write("Critical: " .. criticalMessage) -- Display updated critical message
+  end
+end
+
+-- Function to handle displaying critical information
+local function displayCriticalInformation(criticalMessage, serverID)
+  print("Critical Error: " .. criticalMessage)
+  displayCriticalInfo(criticalMessage, serverID)
+end
+
+-- Display initial server ID on the monitor
+local modemSide = "left" -- Replace with the actual side where your modem is placed
+local serverID = os.getComputerID()
+rednet.open(modemSide)
+local monitor = peripheral.wrap("right")
+monitor.clear()
+monitor.setCursorPos(1, 1)
+monitor.write("Server ID: " .. tostring(serverID))
+monitor.setCursorPos(1, 2)
+monitor.write("Server Online")
+
+while true do
+  local senderID, message, protocol = rednet.receive()
+  
+  if protocol == "file_transfer" then
+    print("Received file from ID: " .. senderID)
+    
+    -- Save the file to the DGOS directory
+    local file = fs.open("DGOS/" .. message.fileName, "w")
+    file.write(message.fileContent)
+    file.close()
+    
+    print("File saved as " .. message.fileName)
+  else
+    -- Assuming other protocols indicate critical information
+    displayCriticalInformation(message, senderID)
+  end
+end

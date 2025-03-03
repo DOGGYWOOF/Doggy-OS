@@ -1,0 +1,7 @@
+term.clear()
+term.setCursorPos(1,1)
+print("Deleting bootloader")
+sleep(2)
+fs.delete("startup")
+print("Deleted")
+os.reboot()

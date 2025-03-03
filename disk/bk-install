@@ -1,0 +1,148 @@
+term.clear()
+
+-- Function to get the terminal dimensions
+function getTerminalSize()
+    local width, height = term.getSize()
+    return width, height
+end
+
+-- Function to draw the loading bar centered
+function drawLoadingBar(current, total, message)
+    local width, _ = getTerminalSize()
+    local barLength = 30 -- Length of the loading bar
+    local filledLength = math.floor((current / total) * barLength)
+    local emptyLength = barLength - filledLength
+    local bar = "[" .. string.rep("=", filledLength) .. string.rep(" ", emptyLength) .. "]"
+    
+    -- Calculate the position to center the bar
+    local barPos = math.floor((width - barLength - 2) / 2)
+    
+    -- Move the UI down by adjusting the row numbers
+    local barRow = 8
+    local messageRow = 10
+    
+    term.setCursorPos(barPos, barRow)
+    term.write(bar .. " " .. math.floor((current / total) * 100) .. "%")
+    
+    -- Print the current message centered below the bar
+    if message then
+        term.setCursorPos(1, messageRow)
+        term.write(string.rep(" ", width)) -- Clear the previous message
+        term.setCursorPos(math.floor((width - #message) / 2), messageRow)
+        term.write(message)
+    end
+end
+
+-- Function to center and stylize text
+function printCenteredText(text, row)
+    local width, _ = getTerminalSize()
+    local textLength = #text
+    local pos = math.floor((width - textLength) / 2)
+    term.setCursorPos(pos, row)
+    term.write(text)
+end
+
+-- Function to display an error message
+function showError(message)
+    term.clear()
+    local width, height = getTerminalSize()
+    local errorMessage = "Error: " .. message
+    local midHeight = math.floor(height / 2)
+    
+    term.setCursorPos(1, midHeight)
+    term.write(string.rep(" ", width)) -- Clear the row
+    term.setCursorPos(math.floor((width - #errorMessage) / 2), midHeight)
+    term.write(errorMessage)
+    
+    term.setCursorPos(1, midHeight + 1)
+    term.write("Press any key to exit...")
+    os.pullEvent("key") -- Wait for any key press
+    term.clear()
+end
+
+-- Print the initial status messages
+printCenteredText("Installing...", 4)  -- Moved down to row 4
+printCenteredText("DO NOT Interrupt Install", 6)  -- Moved down to row 6
+
+-- Define installation steps with updated messages
+local steps = {
+    { message = "Creating Secure boot configuration file", action = function() 
+        -- Attempt to copy to the root directory
+        local success, err = pcall(function() 
+            fs.copy("/disk/.settings", "/.settings")
+        end)
+        if not success then
+            showError("Failed to create secure boot configuration file: " .. err)
+        end
+    end },
+    { message = "Setup copying files...", action = function() 
+        -- Attempt to copy files to the root directory
+        local success, err = pcall(function() 
+            fs.copy("/disk/", "/")
+        end)
+        if not success then
+            showError("Failed to copy files: " .. err)
+        end
+    end },
+    { message = "Unmounting installation disk...", action = function() 
+        -- Attempt to eject disks
+        local success, err = pcall(function() 
+            disk.eject("top")
+            disk.eject("bottom")
+            disk.eject("left")
+            disk.eject("right")
+        end)
+        if not success then
+            showError("Failed to eject installation disk: " .. err)
+        end
+    end },
+    { message = "Formatting file system...", action = function() 
+        -- Attempt to rename directories
+        local success, err = pcall(function() 
+            shell.run("rename", "/", "/disk")
+        end)
+        if not success then
+            showError("Failed to format file system: " .. err)
+        end
+    end },
+    { message = "Creating boot recovery directory...", action = function() 
+        -- Attempt to create recovery directory
+        local success, err = pcall(function() 
+            fs.copy("/disk/", "/recovery")
+        end)
+        if not success then
+            showError("Failed to create boot recovery directory: " .. err)
+        end
+    end },
+    { action = function() 
+        -- Attempt to run the install assistant
+        local success, err = pcall(function() 
+            shell.run("/disk/install-assist")
+        end)
+        if not success then
+            showError("Failed to run install assistant: " .. err)
+        end
+    end }
+}
+
+-- Simulate the installation process with updates
+local totalSteps = #steps
+for i, step in ipairs(steps) do
+    local success, err = pcall(function()
+        drawLoadingBar(i - 1, totalSteps, step.message) -- Start at 0% progress
+        step.action()  -- Execute the installation step
+        sleep(4) -- Increased sleep duration to slow down the process
+    end)
+    
+    if not success then
+        showError(err)
+        return
+    end
+end
+
+-- Final message indicating completion
+local _, height = getTerminalSize()
+term.setCursorPos(1, height - 2)
+term.write(string.rep(" ", term.getSize()))
+term.setCursorPos(math.floor((term.getSize() - #("Installation complete!")) / 2), height - 2)
+term.write("Installation complete!")

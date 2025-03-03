@@ -1,0 +1,7 @@
+term.clear()
+term.setCursorPos(1,1)
+print("======================")
+print("    Signing out...")
+print("======================")
+sleep(2)
+shell.run("/disk/os/lock")

@@ -1,0 +1,16 @@
+term.clear()
+print("Input PIN")
+term.setCursorPos(1,4)
+local input = read("*")
+if input == "71673" then
+print("welcome Back!!")
+sleep(2)
+shell.run("menu")
+
+else
+print("Invalid PIN")
+sleep(2)
+shell.run("/disk/os/lock")
+end
+
+shell.run("/disk/os/home")

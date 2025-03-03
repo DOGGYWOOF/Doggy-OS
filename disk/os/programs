@@ -1,0 +1,56 @@
+-- Function to display the menu
+local function displayMenu()
+    print("Doggy OS programs")
+    print("----------------------")
+    print("1. File manager")
+    print("2. Package Installer")
+    print("3. Recovery")
+    print("4. Wireless file transfer")
+    print("5. Local Server Hosting")
+    print("6. Secure external disk drive")
+    print("7. User management")
+    print("8. Internet browser")
+end
+
+-- Function to perform actions based on user input
+local function performAction(option)
+    if option == "1" then
+        shell.run("/disk/os/Lattix")
+        -- Add code for Option 1 here
+    elseif option == "2" then
+        shell.run("/disk/packages/package-installer")
+        -- Add code for Option 2 here
+    elseif option == "3" then
+        shell.run("/disk/bootloader/recovery")
+        -- Add code for Option 3 here
+    elseif option == "4" then
+        shell.run("/disk/os/client")
+    elseif option == "5" then
+        shell.run("/disk/packages/server")
+    elseif option == "6" then
+        shell.run("/disk/security/encrypt/secure.lua")
+    elseif option == "7" then
+        shell.run("/disk/security/users.lua")
+    elseif option == "8" then
+        shell.run("/disk/os/browser")
+        
+    elseif option == "exit" then
+        shell.run("/disk/os/gui")
+    else
+        term.clear()
+        term.setCursorPos(1,1)
+        shell.run("/disk/os/programs")
+    end
+end
+
+-- Main function to run the program
+local function main()
+    displayMenu() -- Display the menu
+
+    local option = read() -- Read user input
+
+    performAction(option) -- Perform action based on user input
+end
+
+-- Run the program
+main()

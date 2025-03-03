@@ -1,0 +1,74 @@
+-- Clear the screen and set up colors
+term.clear()
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
+term.clear()
+
+-- Define the width and height of the screen
+local width, height = term.getSize()
+
+-- Helper function to center text on the screen
+local function centerText(y, text, textColor)
+    local x = math.floor((width - #text) / 2)
+    term.setCursorPos(x, y)
+    term.setTextColor(textColor)
+    term.write(text)
+end
+
+-- Add a delay to simulate crash delay
+local function crashDelay(seconds)
+    sleep(seconds)
+end
+
+-- Function to log the crash event
+local function logCrashEvent()
+    local timeStamp = os.date("%Y-%m-%d %H:%M:%S")
+    local reason = "Terminated to shell"
+    local logMessage = string.format("Time: %s\nReason: %s\n\n", timeStamp, reason)  -- Added extra newline
+
+    local file = fs.open("/disk/crash_log", "a")
+    if file then
+        file.write(logMessage)
+        file.close()
+    end
+end
+
+-- Display the dog ASCII art with red Xes for eyes
+local dogArt = {
+    "     |\\_/|                  ",
+    "     | X X   RUNTIME ERROR   ",
+    "     |   <>              _   ",
+    "     |  _/\\------____ ((| |))",
+    "     |               --' |  ",
+    " _____|_       ___|   |___.  ",
+    "/_/_____/____/_______|       "
+}
+
+local startLine = math.floor((height - #dogArt) / 2) - 2
+
+-- Display the dog ASCII art with "SYSTEM ERROR!" in red
+for i, line in ipairs(dogArt) do
+    centerText(startLine + i, line, colors.red)
+    crashDelay(0.1)  -- Add slight delay between each line
+end
+
+-- Log the crash event
+logCrashEvent()
+
+-- Display error message below the dog ASCII art in white
+crashDelay(1)  -- Pause before showing the error code
+term.setTextColor(colors.white)
+centerText(startLine + #dogArt + 2, "Doggy OS System Installer has crashed...", colors.white)
+centerText(startLine + #dogArt + 3, "", colors.white)
+
+-- Reboot countdown in 5 seconds
+for i = 5, 0, -1 do
+    crashDelay(1)
+    centerText(height - 2, "Rebooting in " .. i .. " seconds...", colors.white)
+end
+
+-- Clear the screen after countdown and reboot immediately
+term.clear()
+
+-- Reboot the system
+os.reboot()

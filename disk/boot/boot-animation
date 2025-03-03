@@ -1,0 +1,91 @@
+local w, h = term.getSize()
+
+-- Function to center text horizontally
+local function centerText(y, text)
+    local x = math.floor((w - #text) / 2)
+    term.setCursorPos(x, y)
+    term.write(text)
+end
+
+-- Function to draw the spinner animation
+local function drawSpinner(x, y, duration)
+    local spinnerFrames = {
+        "[    ]",
+        "[=   ]",
+        "[==  ]",
+        "[=== ]",
+        "[====]",
+        "[ ===]",
+        "[  ==]",
+        "[   =]",
+        "[    ]",
+        "[   =]",
+        "[  ==]",
+        "[ ===]",
+        "[====]",
+        "[=== ]",
+        "[==  ]",
+        "[=   ]"
+    }
+    local delay = 0.1
+    local frameCount = #spinnerFrames
+
+    local spinnerX = x
+    local spinnerY = y
+
+    local spinnerIndex = 1
+    local startTime = os.clock()
+    while os.clock() - startTime < duration do
+        term.setCursorPos(spinnerX, spinnerY)
+        term.write(spinnerFrames[spinnerIndex])
+
+        spinnerIndex = spinnerIndex % frameCount + 1
+        os.sleep(delay)
+    end
+end
+
+-- ASCII art dog image
+local dogImage = {
+    "     |\\_/|                  ",
+    "     | @ @   Doggy OS        ",
+    "     |   <>              _   ",
+    "     |  _/\\------____ ((| |))",
+    "     |               `--' |  ",
+    " _____|_       ___|   |___.' ",
+    "/_/_____/____/_______|       "
+}
+
+-- Function to draw the ASCII art
+local function drawASCIIArt(y)
+    for i, line in ipairs(dogImage) do
+        centerText(y + i - 1, line)
+    end
+end
+
+-- Function to draw the shutdown screen
+local function drawShutdownScreen()
+    term.setBackgroundColor(colors.black)
+    term.clear()
+
+    term.setTextColor(colors.white)
+    local artHeight = #dogImage
+    local artY = math.floor((h - artHeight) / 2)
+    drawASCIIArt(artY)
+
+    -- Calculate spinner position
+    local spinnerX = math.floor(w / 2) - 3
+    local spinnerY = artY + artHeight + 2
+
+    -- Start spinner animation
+    drawSpinner(spinnerX, spinnerY, 9)  -- Spinner runs for 9 seconds
+end
+
+-- Main program
+drawShutdownScreen()
+
+-- Clear screen after shutdown
+term.setBackgroundColor(colors.black)
+term.clear()
+
+-- Shutdown the computer
+shell.run("disk/os/lock.lua")

@@ -1,0 +1,44 @@
+-- Function to display the menu
+local function displayMenu()
+    term.clear()
+    term.setCursorPos(1,1)
+    print("VA11-ILLA firmware recovery")
+    print("1. Verify Bootloader")
+    print("2. External firmware recovery")
+    print("3. Reboot system")
+    print("4. Recovery shell")
+    print("5. Shutdown")
+    print("6. VA11-ILLA UI")
+end
+
+-- Function to perform actions based on user input
+local function performAction(option)
+    if option == "1" then
+        shell.run("/disk/bootloader/verify-bootloader")
+        -- Add code for Option 1 here
+    elseif option == "2" then
+        shell.run("/disk/pocket/emergency-firmware-recovery")        -- Add code for Option 2 here
+    elseif option == "3" then
+        os.reboot()
+    elseif option == "4" then
+        shell.run("/disk/bootloader/recovery-shell")
+    elseif option == "5" then
+        os.shutdown()
+    elseif option == "6" then
+        shell.run("/disk/bootloader/VA11-ILLA.lua")
+    else
+        shell.run("/disk/bootloader/recovery") 
+    end
+end
+
+-- Main function to run the program
+local function main()
+    displayMenu() -- Display the menu
+
+    local option = read() -- Read user input
+
+    performAction(option) -- Perform action based on user input
+end
+
+-- Run the program
+main()

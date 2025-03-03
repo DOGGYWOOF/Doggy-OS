@@ -1,0 +1,51 @@
+term.clear()
+term.setCursorPos(1,1)
+-- Client side
+-- Make sure the modem is open on the side you're using
+rednet.open("left") -- Replace "left" with the side where your modem is placed
+
+-- Function to read file content
+local function readFileContent(filePath)
+  local file = fs.open(filePath, "r")
+  if file then
+    local content = file.readAll()
+    file.close()
+    return content
+  end
+  return nil
+end
+
+-- Prompt for server ID
+print("Enter server ID: ")
+local serverID = tonumber(read())
+
+-- Prompt for file details
+print("Enter file name or directory path: ")
+local fileName = read()
+
+-- Check if the file exists, else prompt for the directory
+local fileContent = readFileContent(fileName)
+if not fileContent then
+  print("File not found. Enter directory path: ")
+  local directory = read()
+  fileName = directory .. "/" .. fileName
+  fileContent = readFileContent(fileName)
+end
+
+-- Check if file content is obtained
+if fileContent then
+  local message = {
+    fileName = fileName,
+    fileContent = fileContent
+  }
+  
+  -- Send file content to server
+  rednet.send(serverID, message, "file_transfer")
+  print("File sent to server.")
+  sleep(3)
+  shell.run("/disk/os/menu")
+else
+  print("File not found.")
+  sleep(3)
+  shell.run("/disk/os/menu")
+end

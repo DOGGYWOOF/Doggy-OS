@@ -1,0 +1,143 @@
+-- Function to draw a border
+local function drawBorder()
+    term.clear()
+    local w, h = term.getSize()
+    for y = 1, h do
+        term.setCursorPos(1, y)
+        term.write("|")
+        term.setCursorPos(w, y)
+        term.write("|")
+    end
+    for x = 1, w do
+        term.setCursorPos(x, 1)
+        term.write("-")
+        term.setCursorPos(x, h)
+        term.write("-")
+    end
+    term.setCursorPos(1, 1)
+    term.write("+")
+    term.setCursorPos(w, 1)
+    term.write("+")
+    term.setCursorPos(1, h)
+    term.write("+")
+    term.setCursorPos(w, h)
+    term.write("+")
+end
+
+-- Function to center text on the screen
+local function centerText(text, y)
+    local w, _ = term.getSize()
+    local x = math.floor((w - #text) / 2) + 1
+    term.setCursorPos(x, y)
+    term.write(text)
+end
+
+-- Function to show UEFI options menu
+local function showMenu()
+    drawBorder()
+    local _, h = term.getSize()
+    centerText("Doggy OS UEFI Options", math.floor(h / 2) - 2)
+    centerText("1. Recovery", math.floor(h / 2))
+    centerText("2. Bootable devices", math.floor(h / 2) + 1)
+    centerText("3. Shutdown", math.floor(h / 2) + 2)
+end
+
+-- Function to list bootable devices
+local function listBootableDevices()
+    drawBorder()
+    local _, h = term.getSize()
+    centerText("Select Bootable Device", math.floor(h / 2) - 2)
+    
+    local devices = {}
+    for _, side in ipairs({"top", "bottom", "left", "right", "front", "back"}) do
+        if disk.isPresent(side) then
+            local mountPath = disk.getMountPath(side)
+            if fs.exists(mountPath) then
+                for _, file in ipairs(fs.list(mountPath)) do
+                    if file:match("^startup") then
+                        table.insert(devices, side)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    for i, device in ipairs(devices) do
+        centerText(i .. ". " .. device, math.floor(h / 2) - 1 + i)
+    end
+
+    if #devices == 0 then
+        centerText("No bootable devices found", math.floor(h / 2))
+        os.sleep(2)
+        showMenu()
+    else
+        term.setCursorPos(1, math.floor(h / 2) + #devices + 1)
+        term.write("Select a device number: ")
+        local choice = tonumber(read())
+        if choice and devices[choice] then
+            shell.run(disk.getMountPath(devices[choice]) .. "/startup.lua")
+        else
+            listBootableDevices()
+        end
+    end
+end
+
+-- Function to handle menu selection
+local function handleSelection()
+    while true do
+        local event, key = os.pullEvent("key")
+        if key == keys.one then
+            shell.run("/disk/boot/Recovery.lua")
+        elseif key == keys.two then
+            listBootableDevices()
+        elseif key == keys.three then
+            os.shutdown()
+        end
+    end
+end
+
+-- Function to verify user credentials
+local function verifyCredentials(username, password)
+    local userPath = "/disk/users/" .. username
+    if fs.exists(userPath .. "/admin.txt") and fs.exists(userPath .. "/password.txt") then
+        local file = fs.open(userPath .. "/password.txt", "r")
+        local storedPassword = file.readAll()
+        file.close()
+        return storedPassword == password
+    end
+    return false
+end
+
+-- Function to authenticate user
+local function authenticate()
+    term.clear()
+    drawBorder()
+    local _, h = term.getSize()
+    centerText("Doggy OS UEFI Authentication", 3)
+    
+    local w, _ = term.getSize()
+    local usernameX = math.floor(w / 2) - 10
+
+    term.setCursorPos(usernameX, 5)
+    term.write("Username: ")
+    term.setCursorPos(usernameX + 10, 5)
+    local username = read()
+
+    term.setCursorPos(usernameX, 7)
+    term.write("Password: ")
+    term.setCursorPos(usernameX + 10, 7)
+    local password = read("*") -- Masked input for password
+
+    if verifyCredentials(username, password) then
+        showMenu()
+        handleSelection()
+    else
+        centerText("Invalid credentials. Access denied.", 10)
+        os.sleep(2)
+        os.reboot()
+    end
+end
+
+-- Start authentication process
+authenticate()

@@ -1,0 +1,155 @@
+-- Doggy OS UEFI
+
+-- Function to draw a border
+local function drawBorder()
+    term.clear()
+    local w, h = term.getSize()
+    for y = 1, h do
+        term.setCursorPos(1, y)
+        term.write("|")
+        term.setCursorPos(w, y)
+        term.write("|")
+    end
+    for x = 1, w do
+        term.setCursorPos(x, 1)
+        term.write("-")
+        term.setCursorPos(x, h)
+        term.write("-")
+    end
+    term.setCursorPos(1, 1)
+    term.write("+")
+    term.setCursorPos(w, 1)
+    term.write("+")
+    term.setCursorPos(1, h)
+    term.write("+")
+    term.setCursorPos(w, h)
+    term.write("+")
+end
+
+-- Function to center text on the screen
+local function centerText(text, y)
+    local w, _ = term.getSize()
+    local x = math.floor((w - #text) / 2) + 1
+    term.setCursorPos(x, y)
+    term.write(text)
+end
+
+-- Function to show the UEFI message
+local function showUEFIMessage()
+    drawBorder()
+    local _, h = term.getSize()
+    centerText("Doggy OS UEFI", math.floor(h / 2))
+end
+
+-- Function to display an error screen
+local function showErrorScreen(message)
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+    term.clear()
+    drawBorder()
+    local _, h = term.getSize()
+    centerText("Doggy OS Internal Bootloader Error:", math.floor(h / 2) - 2)
+    centerText(message, math.floor(h / 2))
+    centerText("Press any key to restart...", math.floor(h / 2) + 2)
+    os.pullEvent("key") -- Wait for a key press
+    os.reboot() -- Reboot the system
+end
+
+-- Function to load the boot animation
+local function loadBootAnimation()
+    if fs.exists("/disk/boot/boot-animation") then
+        shell.run("/disk/boot/boot-animation")
+    else
+        print("Boot animation not found!")
+    end
+end
+
+-- Function to load the boot options
+local function loadBootOptions()
+    if fs.exists("/disk/boot/boot-options") then
+        shell.run("/disk/boot/boot-options")
+    else
+        print("Boot options not found!")
+    end
+end
+
+-- Function to check the password
+local function checkPassword()
+    if fs.exists("/FW-Security/BIOS/Boot/poweron.pass") then
+        local file = fs.open("/FW-Security/BIOS/Boot/poweron.pass", "r")
+        local correctPassword = file.readAll()
+        file.close()
+
+        while true do
+            drawBorder()
+            local _, h = term.getSize()
+            centerText("Doggy OS Boot Authentication", math.floor(h / 2) - 2)
+            centerText("Enter Password:", math.floor(h / 2))
+            term.setCursorPos(math.floor(term.getSize() / 2), math.floor(h / 2) + 1)
+            local password = read("*") -- Read the password, hiding input
+
+            if password == correctPassword then
+                return true
+            else
+                local timeoutFile = "/FW-Security/BIOS/Boot/TIMEOUT"
+                local f = fs.open(timeoutFile, "w")
+                f.close()
+                return false
+            end
+        end
+    end
+    return true
+end
+
+-- Function to handle timeout
+local function handleTimeout()
+    local timeoutFile = "/FW-Security/BIOS/Boot/TIMEOUT"
+    if fs.exists(timeoutFile) then
+        local timeout = 30
+        while timeout > 0 do
+            drawBorder()
+            local _, h = term.getSize()
+            centerText("Incorrect password.", math.floor(h / 2) - 1)
+            centerText("System locked for " .. timeout .. " seconds.", math.floor(h / 2))
+            sleep(1)
+            timeout = timeout - 1
+        end
+        fs.delete(timeoutFile)
+        os.reboot()
+    end
+end
+
+-- Main function to handle UEFI message, shutdown screen, and timeout
+local function main()
+    -- Check if multishell is supported
+    if not multishell then
+        showErrorScreen("Multishell is not supported on this system.")
+        return
+    end
+
+    handleTimeout()
+
+    if not checkPassword() then
+        handleTimeout()
+        return
+    end
+
+    -- Show UEFI message and wait for 2 seconds
+    showUEFIMessage()
+    local timer = os.startTimer(2) -- Set a timer for 2 seconds
+
+    while true do
+        local event, param = os.pullEvent()
+        if event == "timer" and param == timer then
+            -- After 2 seconds, load boot options
+            shell.run("/disk/boot-options")
+            
+            -- Run DOG_FS after boot options
+            shell.run("/disk/DOG_FS")  -- Add this line to run DOG_FS at the end
+            return
+        end
+    end
+end
+
+-- Start the main function
+main()

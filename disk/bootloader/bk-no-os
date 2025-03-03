@@ -1,0 +1,48 @@
+-- Clear the screen and set up colors
+term.clear()
+term.setBackgroundColor(colors.black)
+term.setTextColor(colors.white)
+term.clear()
+
+-- Define the width and height of the screen
+local width, height = term.getSize()
+
+-- Helper function to center text on the screen
+local function centerText(y, text, textColor)
+    local x = math.floor((width - #text) / 2)
+    term.setCursorPos(x, y)
+    term.setTextColor(textColor)
+    term.write(text)
+end
+
+-- Display the dog ASCII art with red Xes for eyes
+local dogArt = {
+    "     |\\_/|                  ",
+    "     | X X   SYSTEM ERROR!   ",
+    "     |   <>              _   ",
+    "     |  _/\\------____ ((| |))",
+    "     |               `--' |  ",
+    " _____|_       ___|   |___.  ",
+    "/_/_____/____/_______|       "
+}
+
+local startLine = math.floor((height - #dogArt) / 2) - 2
+
+-- Display the dog ASCII art with red Xes for eyes in red
+term.setTextColor(colors.red)
+for i, line in ipairs(dogArt) do
+    centerText(startLine + i, line, colors.red)
+end
+
+-- Display error message below the dog ASCII art in white
+term.setTextColor(colors.white)
+centerText(startLine + #dogArt + 2, "Fatal startup failure", colors.white)
+centerText(startLine + #dogArt + 3, "Error code: C633", colors.white)
+
+-- Move "Please contact support." to the bottom in white
+centerText(height - 2, "Please contact support.", colors.white)
+
+-- Keep the screen static with the error message
+while true do
+    sleep(1)
+end

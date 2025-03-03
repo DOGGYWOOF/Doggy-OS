@@ -1,0 +1,7 @@
+term.setBackgroundColor(2048)
+term.clear()
+term.setCursorPos(1,1)
+print("System failed to start (reinstall firmware)")
+term.setBackgroundColor(2048)
+read()
+shell.run("/disk/bootloader/recovery")

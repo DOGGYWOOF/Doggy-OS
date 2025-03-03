@@ -1,0 +1,242 @@
+-- Function to draw the title bar with the red "X"
+local function drawTitleBar()
+    local width, _ = term.getSize()
+    term.setBackgroundColor(colors.blue)
+    term.setTextColor(colors.white)
+    term.setCursorPos(1, 1)
+    term.write("Doggy OS Browser")
+    term.setCursorPos(width, 1)
+    term.write("X")
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
+end
+
+-- Function to check if a mouse click is on the red "X" in the title bar
+local function isCloseButtonClicked(x, y)
+    local width, _ = term.getSize()
+    return x == width and y == 1
+end
+
+-- Function to wait for a mouse click event
+local function waitForClick()
+    while true do
+        local event, button, x, y = os.pullEvent("mouse_click")
+        if isCloseButtonClicked(x, y) then
+            return true
+        end
+    end
+end
+
+-- Function to display an error message and wait
+local function displayError(message)
+    term.clear()
+    drawTitleBar()
+    print("Error: " .. message)
+    print("Press any key to return to the main menu.")
+    os.pullEvent("key")  -- Wait for any key press
+end
+
+-- Function to get URL from user
+local function getURL()
+    term.clear()
+    drawTitleBar()
+    print("Enter URL:")
+    return read()
+end
+
+-- Automatically find and open the first available modem
+local function openModem()
+    local sides = {"top", "bottom", "left", "right", "front", "back"}
+    for _, side in ipairs(sides) do
+        if peripheral.isPresent(side) and peripheral.getType(side) == "modem" then
+            rednet.open(side)
+            return side
+        end
+    end
+    displayError("No modem found.")
+    return nil
+end
+
+-- Load DNS Provider ID from file
+local function loadDNSProviderID()
+    local filePath = "DNS-Provider.txt"
+    if not fs.exists(filePath) then
+        displayError("DNS-Provider.txt not found.")
+        return nil
+    end
+    local file = fs.open(filePath, "r")
+    local id = file.readAll()
+    file.close()
+    return tonumber(id)
+end
+
+-- Save DNS Provider ID to file
+local function saveDNSProviderID(id)
+    local filePath = "DNS-Provider.txt"
+    local file = fs.open(filePath, "w")
+    file.write(id)
+    file.close()
+    print("DNS Provider ID updated.")
+end
+
+-- Connect to DNS and get IP address
+local function connectToDNS(url, dnsID)
+    local modemSide = openModem()
+    if not modemSide then return nil end
+
+    term.clear()
+    drawTitleBar()
+    print("Connecting to DNS...")
+
+    rednet.send(dnsID, url)
+    local timer = os.startTimer(5)
+    while true do
+        local event, p1, p2 = os.pullEvent()
+        if event == "rednet_message" and p1 == dnsID then
+            rednet.close(modemSide)
+            return p2
+        elseif event == "timer" and p1 == timer then
+            rednet.close(modemSide)
+            displayError("DNS Timeout.")
+            return nil
+        elseif event == "mouse_click" and isCloseButtonClicked(p1, p2) then
+            rednet.close(modemSide)
+            return nil
+        end
+    end
+end
+
+-- Connect to webserver and get website code
+local function connectToWebserver(ip)
+    local modemSide = openModem()
+    if not modemSide then return nil end
+
+    term.clear()
+    drawTitleBar()
+    print("Connecting to Webserver...")
+
+    rednet.send(tonumber(ip), "GET")
+    local timer = os.startTimer(5)
+    while true do
+        local event, p1, p2 = os.pullEvent()
+        if event == "rednet_message" and p1 == tonumber(ip) then
+            rednet.close(modemSide)
+            return p2
+        elseif event == "timer" and p1 == timer then
+            rednet.close(modemSide)
+            displayError("Connection timed out.")
+            return nil
+        elseif event == "mouse_click" and isCloseButtonClicked(p1, p2) then
+            rednet.close(modemSide)
+            return nil
+        end
+    end
+end
+
+-- Execute website code and render it
+local function runWebsite(code)
+    local func, err = load(code, "website", "t", _ENV)
+    if func then
+        term.clear()
+        drawTitleBar()
+        func()  -- Run the website code
+        -- Continuously check for user interaction (mouse clicks) to close the browser
+        while not waitForClick() do
+            -- Keep checking for click events to close the browser
+        end
+        term.clear()
+    else
+        displayError("Error loading website: " .. err)
+    end
+end
+
+-- Main menu function
+local function mainMenu()
+    term.clear()
+    drawTitleBar()
+    print("Select an option:")
+    print("1. Enter URL")
+    print("2. Edit DNS Provider ID")
+    print("3. Exit")
+    local choice = tonumber(read())
+
+    if choice == 1 then
+        -- Enter URL
+        while true do
+            local url = getURL()
+            if url == nil then
+                break
+            end
+
+            local dnsID = loadDNSProviderID()
+            if not dnsID then
+                displayError("Failed to load DNS Provider ID.")
+                return
+            end
+
+            local ip = connectToDNS(url, dnsID)
+            if ip == "404_NOT_FOUND" then
+                displayError("Error 404: Webpage cannot be found!")
+                return
+            elseif not ip then
+                displayError("Failed to connect to DNS.")
+                return
+            end
+
+            local code = connectToWebserver(ip)
+            if not code then
+                displayError("Failed to connect to Webserver.")
+                return
+            end
+
+            -- Write code to file and then delete it
+            local tempFile = "received_code.lua"
+            local tempFileHandle = fs.open(tempFile, "w")
+            tempFileHandle.write(code)
+            tempFileHandle.close()
+
+            -- Immediately delete the file after writing
+            local success, err = pcall(function() fs.delete(tempFile) end)
+            if success then
+                print("Temporary file deleted successfully.")
+            else
+                displayError("Error deleting temporary file: " .. err)
+            end
+
+            runWebsite(code)
+            -- After running the website, return to the main menu
+            term.clear()
+            drawTitleBar()
+            print("Returning to main menu...")
+            os.sleep(2)  -- Pause to allow the user to see the message
+            break
+        end
+    elseif choice == 2 then
+        -- Edit DNS Provider ID
+        term.clear()
+        drawTitleBar()
+        print("Current DNS Provider ID: " .. (loadDNSProviderID() or "Not set"))
+        print("Enter new DNS Provider ID:")
+        local newID = tonumber(read())
+        if newID then
+            saveDNSProviderID(newID)
+        else
+            displayError("Invalid DNS Provider ID.")
+        end
+    elseif choice == 3 then
+        print("Exiting...")
+        return true  -- Indicate exit
+    else
+        displayError("Invalid option. Please select 1, 2, or 3.")
+    end
+
+    return false  -- Continue showing menu
+end
+
+-- Main execution loop
+while true do
+    local exit = mainMenu()
+    if exit then
+        break  -- Exit the loop if the user chose to exit
+    end
+end
