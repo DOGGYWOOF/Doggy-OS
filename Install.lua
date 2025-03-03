@@ -90,8 +90,19 @@ else
         local user_input = read()
 
         if user_input:lower() == 'y' then
-            -- Replacing shell.run with http for online installer script
-            http.request("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/installgui")
+            -- Fetch and run the online installation script
+            local installer = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/installgui")
+            if installer then
+                local installerScript = installer.readAll()
+                installer.close()
+                loadstring(installerScript)()  -- Run the installer script
+            else
+                term.clear()
+                term.setCursorPos(1, 1)
+                print("Error: Unable to download installation script.")
+                sleep(2)
+                return
+            end
         elseif user_input:lower() == 'n' then
             term.clear()
             term.setCursorPos(1, 1)
