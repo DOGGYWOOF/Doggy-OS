@@ -77,6 +77,11 @@ local files = {
     -- Files under /disk/users/root
     {"/disk/users/root/admin.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/admin.txt"},
     {"/disk/users/root/block.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/block.txt"},
+
+    -- Additional files
+    {"/disk/startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/startup"},
+    {"/disk/no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/no-os"},
+    {"/disk/settings.settings", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/settings"},
 }
 
 -- Function to download files using HTTP(S)
