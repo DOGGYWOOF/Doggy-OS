@@ -1,4 +1,4 @@
-# Doggy-OS
+# Doggy OS
 
 Doggy OS is a LUA-based operating system for CC Tweaked, designed for use within the ComputerCraft mod in Minecraft. It offers automated boot functions, security checks, and a simple GUI while supporting multi-user environments and advanced security policies.
 
@@ -27,4 +27,4 @@ Doggy OS comes with various security measures to safeguard the system:
 Doggy OS is **not open-source**. All rights are reserved, and modifications or redistribution are not permitted.
 
 ## Contact
-For questions or support, you can reach out to me on Discord at `DOGGYWOOF678`.
+For questions or support, you can reach out to me on Discord at `doggywoof678`.
