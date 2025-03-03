@@ -73,8 +73,19 @@ end
 term.clearLine()
 centerText(startLine + #dogArt + 2, "", colors.white)
 
--- Execute the installation commands
-shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/install_injector")
+-- Execute the installation commands using http.request instead of wget
+local url = "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/install_injector"
+local response = http.request(url)
+
+if response then
+    -- Process the response here, for example, save it to a file
+    local file = fs.open("/tmp/install_injector", "w")
+    file.write(response)
+    file.close()
+    shell.run("/tmp/install_injector")
+else
+    print("Failed to download the installer.")
+end
 
 -- Display the "Installation Complete!" message in white
 centerText(startLine + #dogArt + 2, "Doggy OS Installation Complete!", colors.white)
@@ -88,7 +99,15 @@ end
 -- Wait for 3 seconds before rebooting
 sleep(0.5)
 
--- Reboot the system
-shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/no-os")
-shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/startup.lua")
-shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/disk/setup")
+-- Reboot the system using http
+url = "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/disk/setup"
+response = http.request(url)
+
+if response then
+    local file = fs.open("/tmp/setup", "w")
+    file.write(response)
+    file.close()
+    shell.run("/tmp/setup")
+else
+    print("Failed to download the setup.")
+end
