@@ -10,9 +10,9 @@ Doggy OS is a LUA-based operating system for CC Tweaked, designed for use within
 - **Customizable**: While not open source, Doggy OS can be configured to suit specific use cases and needs.
 
 ## Installation
-1. Download the latest release from the [releases section](https://github.com/yourusername/Doggy-OS/releases).
-2. Upload the files to your ComputerCraft setup.
-3. Run `startup.lua` to boot Doggy OS and begin using the system.
+1. Download the latest installer script.
+2. Upload the files to your ComputerCraft setup and run it.
+3. Follow the Doggy OS installer program to install Doggy OS.
 
 ## Usage
 After installation, Doggy OS will automatically reboot to the computer setup to setup your new user account.
