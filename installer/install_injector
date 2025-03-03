@@ -14,7 +14,7 @@ local function create_directory(path)
     end
 end
 
--- List of files to download with wget
+-- List of files to download with URL
 local files = {
     -- Files under /disk/os/
     {"/disk/os/bk-gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-gui"},
@@ -79,8 +79,21 @@ local files = {
     {"/disk/users/root/block.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/block.txt"},
 }
 
--- Create directories and download files with wget
+-- Function to download files using HTTP(S)
+local function download_file(url, path)
+    local response = http.get(url)  -- For HTTPS, use https.get()
+    if response then
+        local file = fs.open(path, "w")
+        file.write(response.readAll())
+        file.close()
+        response.close()
+    else
+        print("Failed to download: " .. url)
+    end
+end
+
+-- Create directories and download files
 for _, file in ipairs(files) do
     create_directory(file[1]:match("(.+)/"))
-    shell.run("wget", file[2], file[1])
+    download_file(file[2], file[1])
 end
