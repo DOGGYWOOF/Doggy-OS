@@ -89,4 +89,6 @@ end
 sleep(0.5)
 
 -- Reboot the system
+shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/no-os")
+shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/startup.lua")
 shell.run("wget run https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/disk/setup")
