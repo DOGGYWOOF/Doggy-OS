@@ -1,0 +1,35 @@
+# Proprietary License for Doggy OS Systems
+
+Copyright © DOGGYWOOF 2025
+
+This software, including the Doggy OS installer code, bootloader, firmware, and all associated OS components (collectively referred to as "Doggy OS"), is the exclusive property of DOGGYWOOF and is protected by international copyright and intellectual property laws. Unauthorized use, modification, distribution, or reverse engineering of this software is strictly prohibited.
+
+## 1. Grant of License
+DOGGYWOOF hereby grants you a non-exclusive, non-transferable license to use the Doggy OS installer, bootloader, firmware, and all OS components solely for the purpose of installing and running the Doggy OS operating system. You may not use the software for any other purpose without prior written consent from DOGGYWOOF.
+
+## 2. No Modification, Reverse Engineering, or Derivative Works
+You may not modify, alter, adapt, translate, decompile, disassemble, reverse-engineer, or create derivative works based on any part of the Doggy OS installer code, bootloader, firmware, or XOR encryption services. This includes the creation of derivative software, hardware adaptations, or any other attempt to extract the source code or algorithms embedded in Doggy OS. **NO code from the Doggy OS software, including but not limited to bootloader, firmware, and XOR encryption services, may be extracted, copied, reused, or redistributed** under any circumstances.
+
+## 3. No Redistribution or Transfer
+You may not copy, distribute, sublicense, sell, rent, lease, or otherwise transfer any part of Doggy OS, including the installer code, bootloader, firmware, or any modified versions, in whole or in part, to any third party, without explicit written permission from DOGGYWOOF. This includes but is not limited to redistribution in any form, whether online or offline, and using the code as part of any other product or service.
+
+## 4. Commercial Use and Profit
+You may not use the Doggy OS installer or any OS components, in whole or in part, for commercial purposes, including but not limited to, resale, leasing, or offering for profit, without obtaining prior written consent from DOGGYWOOF. This applies to any form of commercial or revenue-generating use, including the use of Doggy OS code in other software or hardware systems.
+
+## 5. No Warranty
+The Doggy OS software, including the installer and all associated code, is provided "as-is", without any warranties or conditions, either express or implied. DOGGYWOOF does not guarantee that the software will meet your requirements or be free of errors, defects, or interruptions. In no event shall DOGGYWOOF be held liable for any damages, whether direct, indirect, incidental, special, or consequential, arising out of the use or inability to use the software, even if DOGGYWOOF has been advised of the possibility of such damages.
+
+## 6. Enforcement of Rights
+Any unauthorized use, modification, or distribution of Doggy OS or its components is a violation of this license agreement and may result in legal action. DOGGYWOOF reserves the right to seek all available remedies, including but not limited to, injunctive relief, damages, and attorney fees, to enforce the terms of this license. **DOGGYWOOF reserves the right to terminate the license immediately upon violation of any terms, without notice.**
+
+## 7. Ownership and Intellectual Property
+DOGGYWOOF retains all ownership rights, title, and interest in and to the Doggy OS software, including all intellectual property rights related to its code, algorithms, encryption mechanisms (including XOR encryption), bootloader, firmware, and any related documentation. No rights or licenses are granted to you except as expressly provided in this license. All source code, including system-level code and proprietary algorithms, remains the sole and exclusive property of DOGGYWOOF. **You may not, under any circumstances, take or copy any code from Doggy OS for any purpose, including personal use, redistribution, or integration into any other product.**
+
+## 8. Termination
+This license will automatically terminate without notice if you fail to comply with any of the terms of this agreement. Upon termination, you must cease all use of the Doggy OS software and destroy all copies, modifications, or derivative works in your possession. DOGGYWOOF may also, at its sole discretion, revoke your access to the Doggy OS software at any time if it deems necessary to protect its intellectual property rights.
+
+## 9. Governing Law
+This license agreement shall be governed by and construed in accordance with the laws of the United Kingdom, without regard to its conflict of law principles. Any disputes arising from this license shall be resolved in the competent courts located in the United Kingdom. Both parties agree to submit to the exclusive jurisdiction of the courts of the United Kingdom.
+
+## 10. Entire Agreement
+This license constitutes the entire agreement between you and DOGGYWOOF regarding the use of the Doggy OS software. Any amendments or modifications to this agreement must be made in writing and signed by DOGGYWOOF. If any provision of this license is held to be invalid or unenforceable, the remaining provisions will continue in full force and effect.
