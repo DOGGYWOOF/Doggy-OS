@@ -1,0 +1,86 @@
+-- Function to create the directory if it doesn't exist
+local function create_directory(path)
+    local parts = {}
+    for part in path:gmatch("[^/]+") do
+        table.insert(parts, part)
+    end
+
+    local current_path = "/disk"
+    for i = 2, #parts do
+        current_path = current_path .. "/" .. parts[i]
+        if not fs.exists(current_path) then
+            fs.makeDir(current_path)
+        end
+    end
+end
+
+-- List of files to download with wget
+local files = {
+    -- Files under /disk/os/
+    {"/disk/os/bk-gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-gui"},
+    {"/disk/os/bk-home.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home.lua"},
+    {"/disk/os/bk-home2", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home2"},
+    {"/disk/os/browser", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/browser"},
+    {"/disk/os/client", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/client"},
+    {"/disk/os/command.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/command.lua"},
+    {"/disk/os/disabled", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/disabled"},
+    {"/disk/os/gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/gui"},
+    {"/disk/os/home.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/home.lua"},
+    {"/disk/os/Lattix", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/Lattix"},
+    {"/disk/os/legacy.shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/legacy.shutdown"},
+    {"/disk/os/lock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/lock.lua"},
+    {"/disk/os/programs", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/programs"},
+    {"/disk/os/reboot.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/reboot.lua"},
+    {"/disk/os/shutdown.exe", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/shutdown.exe"},
+    {"/disk/os/sign-out.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/sign-out.lua"},
+    {"/disk/os/surface", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/surface"},
+
+    -- Files under /disk/security/
+    {"/disk/security/Unlock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/security/Unlock.lua"},
+    {"/disk/security/users.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/security/users.lua"},
+
+    -- Files under /disk/acpi/
+    {"/disk/acpi/logoff", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/logoff"},
+    {"/disk/acpi/reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/reboot"},
+    {"/disk/acpi/shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/shutdown"},
+    {"/disk/acpi/soft-reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot"},
+    {"/disk/acpi/soft-reboot-load", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot-load"},
+
+    -- Files under /disk/bootloader/
+    {"/disk/bootloader/bk-no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/bk-no-os"},
+    {"/disk/bootloader/check-bootloader.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/check-bootloader.lua"},
+    {"/disk/bootloader/error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/error"},
+    {"/disk/bootloader/no-os.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/no-os.lua"},
+    {"/disk/bootloader/recovery", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/recovery"},
+    {"/disk/bootloader/recovery-shell.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/recovery-shell.lua"},
+    {"/disk/bootloader/repair", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/repair"},
+    {"/disk/bootloader/system.config", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/system.config"},
+    {"/disk/bootloader/Unlock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/Unlock.lua"},
+    {"/disk/bootloader/VA11-ILLA.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/VA11-ILLA.lua"},
+    {"/disk/bootloader/verify-bootloader.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/verify-bootloader.lua"},
+
+    -- Files under /disk/boot/
+    {"/disk/boot/anim.old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/anim.old"},
+    {"/disk/boot/BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/BIOS"},
+    {"/disk/boot/bk-BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-BIOS"},
+    {"/disk/boot/bk-error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-error"},
+    {"/disk/boot/bk-startup-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-startup-check.lua"},
+    {"/disk/boot/boot-animation", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/boot-animation"},
+    {"/disk/boot/boot-options", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/boot-options"},
+    {"/disk/boot/CFW-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/CFW-check.lua"},
+    {"/disk/boot/error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/error"},
+    {"/disk/boot/HardwareID_check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/HardwareID_check.lua"},
+    {"/disk/boot/install.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/install.lua"},
+    {"/disk/boot/Recovery.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/Recovery.lua"},
+    {"/disk/boot/start-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/start-check.lua"},
+
+    -- Files under /disk/users/root
+    {"/disk/users/root/admin.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/admin.txt"},
+    {"/disk/users/root/block.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/block.txt"},
+}
+
+-- Create directories and download files with wget
+for _, file in ipairs(files) do
+    create_directory(file[1]:match("(.+)/"))
+    shell.run("wget", file[2], file[1])
+end
