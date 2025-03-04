@@ -53,13 +53,12 @@ local files = {
 
     -- Root DIR
     {"no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/no-os"},
-    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/startup"},
+    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/error"},
     {"secboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/settings"},
-   
-    
+
     -- /disk/.../
 
-    
+   
     {"bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
     {"bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
     {"DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
@@ -70,7 +69,6 @@ local files = {
     {"LST_STARTUP_DONOTDELETE", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/LST_STARTUP_DONOTDELETE"},
     {"server", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/server"},
     {"setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/setup"},
-    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/error"},
     {"tesr", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/tesr"},
 
     -- Files under /disk/boot/
