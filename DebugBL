@@ -1,0 +1,49 @@
+-- List of required files
+local requiredFiles = {
+    "/disk/bootloader/VA11-ILLA.lua",
+    "/disk/os/home.lua",
+    "/disk/os/lock.lua",
+    "/disk/boot/boot-animation",
+    "/disk/error/BSOD.lua",
+    -- Add more file names as needed
+}
+
+-- Function to check if all required files exist
+os.pullEvent = os.pullEventRaw
+
+local function checkFiles()
+    local missingFiles = {}
+
+    for _, fileName in ipairs(requiredFiles) do
+        if not fs.exists(fileName) then
+            table.insert(missingFiles, fileName)
+        end
+    end
+
+    return missingFiles
+end
+
+-- Main function
+local function main()
+    local missing = checkFiles()
+
+    if #missing > 0 then
+        -- Display debug information instead of running no-os
+        term.setTextColor(colors.red)
+        print("[ERROR] Missing critical system files:")
+        term.setTextColor(colors.white)
+        for _, file in ipairs(missing) do
+            print(" - " .. file)
+        end
+        print("\nSystem cannot continue booting.")
+        print("Press any key to shut down.")
+        os.pullEvent("key")
+        os.shutdown()
+    else
+        -- All files exist, continue booting
+        shell.run("/disk/boot/CFW-check.lua")
+    end
+end
+
+-- Run the main function
+main()
