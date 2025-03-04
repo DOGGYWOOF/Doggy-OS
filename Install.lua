@@ -62,8 +62,10 @@ local files = {
     -- Root DIR
     {"no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/no-os"},
     {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/startup"},
-    {"/disk/.BL", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/.BL"},
-    {"/disk/.settings", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/.settings"},
+
+    -- /disk/.../
+
+   
     {"/disk/bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
     {"/disk/bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
     {"/disk/DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
