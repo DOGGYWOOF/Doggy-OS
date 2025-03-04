@@ -1,135 +1,108 @@
-os.pullEvent = os.pullEventRaw
-
-if not multishell then
-    term.clear()
-    term.setCursorPos(1, 1)
-    print("Doggy OS Install error: Unsupported System")
-    read()
-    disk.eject("back")
-    disk.eject("bottom")
-    disk.eject("left")
-    disk.eject("right")
-    disk.eject("top")
-    disk.eject("front")
-    os.reboot()
-    return
-else
-    -- Center the text within the given width
-    function centerText(text, width)
-        local padding = math.max(0, math.floor((width - #text) / 2))
-        return string.rep(" ", padding) .. text
+-- Function to create the directory if it doesn't exist
+local function create_directory(path)
+    local parts = {}
+    for part in path:gmatch("[^/]+") do
+        table.insert(parts, part)
     end
 
-    -- Draw a border with specified width and height
-    function drawBorder(width, height)
-        term.setCursorPos(1, 1)
-        term.write("+" .. string.rep("-", width - 2) .. "+")
-        for i = 2, height - 1 do
-            term.setCursorPos(1, i)
-            term.write("|")
-            term.setCursorPos(width, i)
-            term.write("|")
+    local current_path = "/disk"
+    for i = 2, #parts do
+        current_path = current_path .. "/" .. parts[i]
+        if not fs.exists(current_path) then
+            fs.makeDir(current_path)
         end
-        term.setCursorPos(1, height)
-        term.write("+" .. string.rep("-", width - 2) .. "+")
     end
+end
 
-    -- Draw the centered text with more spacing
-    function drawCenteredText(width, height)
-        term.setCursorPos(2, 2)
-        drawBorder(width, height)
+-- List of files to download with URL
+local files = {
+    -- Files under /disk/os/
+    {"/disk/os/bk-gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-gui"},
+    {"/disk/os/bk-home.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home.lua"},
+    {"/disk/os/bk-home2", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home2"},
+    {"/disk/os/browser", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/browser"},
+    {"/disk/os/client", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/client"},
+    {"/disk/os/command.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/command.lua"},
+    {"/disk/os/disabled", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/disabled"},
+    {"/disk/os/gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/gui"},
+    {"/disk/os/home.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/home.lua"},
+    {"/disk/os/Lattix", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/Lattix"},
+    {"/disk/os/legacy.shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/legacy.shutdown"},
+    {"/disk/os/lock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/lock.lua"},
+    {"/disk/os/programs", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/programs"},
+    {"/disk/os/reboot.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/reboot.lua"},
+    {"/disk/os/shutdown.exe", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/shutdown.exe"},
+    {"/disk/os/sign-out.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/sign-out.lua"},
+    {"/disk/os/surface", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/surface"},
 
-        local y = 4
-        term.setCursorPos(3, y)
-        print(centerText("Doggy OS v13 Online Installer", width - 4))
+    -- Files under /disk/security/
+    {"/disk/security/Unlock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/security/Unlock.lua"},
+    {"/disk/security/users.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/security/users.lua"},
 
-        y = y + 2
-        term.setCursorPos(3, y)
-        print(centerText("OS VERSION: Doggy OS 13.0", width - 4))
+    -- Files under /disk/acpi/
+    {"/disk/acpi/logoff", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/logoff"},
+    {"/disk/acpi/reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/reboot"},
+    {"/disk/acpi/shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/shutdown"},
+    {"/disk/acpi/soft-reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot"},
+    {"/disk/acpi/soft-reboot-load", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot-load"},
 
-        y = y + 1
-        term.setCursorPos(3, y)
-        print(centerText("UEFI: DOGGY OS UEFI CONFIG (N3K0)", width - 4))
+    -- Files under /disk/bootloader/
+    {"/disk/bootloader/bk-no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/bk-no-os"},
+    {"/disk/bootloader/check-bootloader.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/check-bootloader.lua"},
+    {"/disk/bootloader/error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/error"},
+    {"/disk/bootloader/no-os.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/no-os.lua"},
+    {"/disk/bootloader/recovery", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/recovery"},
+    {"/disk/bootloader/recovery-shell.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/recovery-shell.lua"},
+    {"/disk/bootloader/repair", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/repair"},
+    {"/disk/bootloader/system.config", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/system.config"},
+    {"/disk/bootloader/Unlock.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/Unlock.lua"},
+    {"/disk/bootloader/VA11-ILLA.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/VA11-ILLA.lua"},
+    {"/disk/bootloader/verify-bootloader.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/verify-bootloader.lua"},
 
-        y = y + 1
-        term.setCursorPos(3, y)
-        print(centerText("BOOTLOADER: VA11-ILLA 13.0", width - 4))
+    -- Files under /disk/boot/
+    {"/disk/boot/anim.old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/anim.old"},
+    {"/disk/boot/BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/BIOS"},
+    {"/disk/boot/bk-BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-BIOS"},
+    {"/disk/boot/bk-error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-error"},
+    {"/disk/boot/bk-startup-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/bk-startup-check.lua"},
+    {"/disk/boot/boot-animation", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/boot-animation"},
+    {"/disk/boot/boot-options", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/boot-options"},
+    {"/disk/boot/CFW-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/CFW-check.lua"},
+    {"/disk/boot/error", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/error"},
+    {"/disk/boot/HardwareID_check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/HardwareID_check.lua"},
+    {"/disk/boot/install.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/install.lua"},
+    {"/disk/boot/Recovery.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/Recovery.lua"},
+    {"/disk/boot/start-check.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/start-check.lua"},
 
-        y = y + 3
-        term.setCursorPos(3, y)
-        print(centerText("Confirm Install", width - 4))
+    -- Files under /disk/users/root
+    {"/disk/users/root/admin.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/admin.txt"},
+    {"/disk/users/root/password.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/password.txt"},
+    {"/disk/users/root/user.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/user.txt"},
 
-        y = y + 1
-        term.setCursorPos(3, y)
-        print(centerText("Y: Install OS", width - 4))
+    -- Files under /disk/users/guest
+    {"/disk/users/guest/password.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/guest/password.txt"},
+}
 
-        y = y + 1
-        term.setCursorPos(3, y)
-        print(centerText("N: Cancel Install", width - 4))
-
-        y = y + 3
-        term.setCursorPos(3, y)
-        print(centerText("===================================", width - 4))
-    end
-
-    function main()
-        term.clear()
-        local w, h = term.getSize()
-        local contentHeight = 16
-        local borderPadding = 2  -- Padding between border and content
-
-        -- Adjust height for border padding
-        local heightWithBorders = contentHeight + borderPadding * 2
-
-        -- Make sure the height fits within the screen
-        local displayHeight = math.min(h, heightWithBorders)
-        drawCenteredText(w, displayHeight)
-
-        -- Read user input
-        term.setCursorPos(3, displayHeight - 1)
-        local user_input = read()
-
-        if user_input:lower() == 'y' then
-            -- Fetch and run the online installation script
-            local installer = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/installer/installgui")
-            if installer then
-                local installerScript = installer.readAll()
-                installer.close()
-                loadstring(installerScript)()  -- Run the installer script
-            else
-                term.clear()
-                term.setCursorPos(1, 1)
-                print("Error: Unable to download installation script.")
-                sleep(2)
-                return
-            end
-        elseif user_input:lower() == 'n' then
-            term.clear()
-            term.setCursorPos(1, 1)
-            drawBorder(w, 7)
-            term.setCursorPos(3, 2)
-            print(centerText("The Installation Was Cancelled!", w - 4))
-            sleep(2)  -- A short delay before exiting
-            return  -- Exit the installation process without doing anything further
+-- Main loop to download files if they don't already exist
+for _, file in ipairs(files) do
+    local file_path = file[1]
+    local file_url = file[2]
+    
+    create_directory(file_path)
+    
+    if not fs.exists(file_path) then
+        print("Downloading: " .. file_path)
+        local handle = http.get(file_url)
+        if handle then
+            local data = handle.readAll()
+            local file_handle = fs.open(file_path, "w")
+            file_handle.write(data)
+            file_handle.close()
+            print("Downloaded: " .. file_path)
         else
-            shell.run("/disk/startup")
-            main()
+            print("Failed to download: " .. file_path)
         end
+    else
+        print("Skipping: " .. file_path .. " (already exists)")
     end
-
-    function runProgram()
-        -- Replace the following line with the code to run your desired program
-        shell.run("/disk/install")  -- Replace with your actual program name
-        
-        term.clear()
-        term.setCursorPos(1, 1)
-        print("Doggy OS Install error")
-        print("====================================")
-        print("Unable to load installation program")
-        print("Press enter to retry")
-        read()
-        os.reboot()
-    end
-
-    main()
 end
