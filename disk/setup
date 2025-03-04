@@ -154,6 +154,6 @@ labelComputer()
 
 -- Run /disk/boot/error instead of /disk/boot/BIOS
 setupUI("Running Doggy OS", "Please wait...")
-fs.copy("/disk/boot/error","startup")
 shell.run("rename secboot .settings")
+fs.copy("/disk/boot/error","startup")
 shell.run("/disk/boot/error")
