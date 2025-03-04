@@ -5,7 +5,6 @@ local requiredElements = {
     "/disk/os/home.lua",                      -- Specific file path
     "/disk/os/lock.lua",                      -- Specific file path
     "/disk/boot/boot-animation",              -- Specific file path
-    "/disk/error/BSOD.lua",                   -- Specific file path
     "os.pullEvent = os.pullEventRaw",         -- Overriding os.pullEvent
     "local function checkFiles()",            -- Definition of checkFiles function
     "local missingFiles = {}",                -- Initialization of missingFiles table
