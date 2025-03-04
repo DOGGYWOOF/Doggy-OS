@@ -66,18 +66,18 @@ local files = {
     -- /disk/.../
 
    
-    {"/disk/bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
-    {"/disk/bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
-    {"/disk/DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
-    {"/disk/install.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install.lua"},
-    {"/disk/install-assist", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-assist"},
-    {"/disk/install-old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-old"},
-    {"/disk/INSTALLTEST", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/INSTALLTEST"},
-    {"/disk/LST_STARTUP_DONOTDELETE", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/LST_STARTUP_DONOTDELETE"},
-    {"/disk/server", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/server"},
-    {"/disk/setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/setup"},
-    {"/disk/startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/startup"},
-    {"/disk/tesr", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/tesr"},
+    {"bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
+    {"bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
+    {"DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
+    {"install.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install.lua"},
+    {"install-assist", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-assist"},
+    {"install-old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-old"},
+    {"INSTALLTEST", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/INSTALLTEST"},
+    {"LST_STARTUP_DONOTDELETE", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/LST_STARTUP_DONOTDELETE"},
+    {"server", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/server"},
+    {"setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/setup"},
+    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/startup"},
+    {"tesr", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/tesr"},
 
     -- Files under /disk/boot/
     {"/disk/boot/anim.old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/anim.old"},
@@ -133,4 +133,19 @@ end
 
 -- Run /disk/setup at the end
 shell.run("/disk/setup")
+
+fs.copy("tesr","/disk/")
+fs.copy("startup","/disk/")
+fs.copy("setup","/disk/")
+fs.copy("server","/disk/")
+fs.copy("LST_STARTUP_DONOTDELETE","/disk/")
+fs.copy("LST_STARTUP_DONOTDELETE","/disk/")
+fs.copy("INSTALLTEST","/disk/")
+fs.copy("install-old","/disk/")
+fs.copy("install-assist","/disk/")
+fs.copy("install.lua","/disk/")
+fs.copy("DOG_FS","/disk/")
+fs.copy("bk-setup","/disk/")
+fs.copy("bk-install","/disk/")
+
 
