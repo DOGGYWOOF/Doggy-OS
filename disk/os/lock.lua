@@ -7,7 +7,6 @@ local ERROR_FOLDER = "/disk/error/"
 local BSOD_PROGRAM = "BSOD.lua"
 local CURRENT_USER_FILE = ".currentusr"
 local SHOW_ALL_USERS_FILE = "/disk/config/security/login/ShowAllUsers.cfg"
-local AUTOLOGIN_FILE = "/disk/config/security/login/AutoLoginAllowed.cfg"
 
 -- Utility function to draw a centered popup window with a text-based border
 local function drawPopupWindow(headerText, contentLines, windowWidth, windowHeight)
@@ -139,8 +138,9 @@ local function checkCredentials(username)
 
     local storedPassword = getUserCredentials(username)
     if not storedPassword then
-        -- No password file, skip password check
-        return true
+        drawPopupWindow("Doggy OS Login Failure", {"User account doesn't exist or is corrupted."})
+        os.sleep(3)
+        return false
     end
 
     local attempts = 0
@@ -237,18 +237,6 @@ local function insertSecurityCard(username)
     end
 end
 
--- Function to check if autologin is allowed
-local function checkAutoLogin()
-    if fs.exists(AUTOLOGIN_FILE) then
-        local file = fs.open(AUTOLOGIN_FILE, "r")
-        local username = file.readLine()
-        file.close()
-        return username
-    else
-        return nil
-    end
-end
-
 -- Main function for login process
 local function main()
     term.setTextColor(colors.white)
@@ -257,19 +245,11 @@ local function main()
 
     local username
 
-    -- Check if AutoLogin is allowed
-    local autoLoginUser = checkAutoLogin()
-    if autoLoginUser then
-        username = autoLoginUser
-        drawPopupWindow("Autologin", {"Welcome back, " .. username .. "!"})
-        os.sleep(2)
+    if fs.exists(SHOW_ALL_USERS_FILE) then
+        username = selectUserFromList()
     else
-        if fs.exists(SHOW_ALL_USERS_FILE) then
-            username = selectUserFromList()
-        else
-            drawPopupWindow("Protected by Doggy OS Security", {"Enter username:"})
-            username = read()
-        end
+        drawPopupWindow("Protected by Doggy OS Security", {"Enter username:"})
+        username = read()
     end
 
     -- Attempt security card login first
