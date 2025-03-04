@@ -55,6 +55,9 @@ local files = {
     {"no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/no-os"},
     {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/startup"},
 
+    {"settings", " https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/settings"} 
+   
+    
     -- /disk/.../
 
     
