@@ -59,6 +59,10 @@ local files = {
     {"/disk/bootloader/VA11-ILLA.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/VA11-ILLA.lua"},
     {"/disk/bootloader/verify-bootloader.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/verify-bootloader.lua"},
 
+    -- Root DIR
+    {"no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/no-os"},
+    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/startup"},
+
     -- Files under /disk/boot/
     {"/disk/boot/anim.old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/anim.old"},
     {"/disk/boot/BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/BIOS"},
@@ -79,8 +83,12 @@ local files = {
     {"/disk/users/root/password.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/password.txt"},
     {"/disk/users/root/user.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/root/user.txt"},
 
-    -- Files under /disk/users/guest
-    {"/disk/users/guest/password.txt", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/users/guest/password.txt"},
+    -- Files under /disk/pocket/
+    {"/disk/pocket/emergency-firmware-recovery.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/pocket/emergency-firmware-recovery.lua"},
+    {"/disk/pocket/start", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/pocket/start"},
+
+    -- Files under /disk/packages/
+    {"/disk/packages/package-installer", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/packages/package-installer"},
 }
 
 -- Main loop to download files if they don't already exist
@@ -106,3 +114,6 @@ for _, file in ipairs(files) do
         print("Skipping: " .. file_path .. " (already exists)")
     end
 end
+
+-- Run /disk/setup at the end
+shell.run("/disk/setup")
