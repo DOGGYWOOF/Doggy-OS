@@ -4,7 +4,6 @@ local requiredFiles = {
     "/disk/os/home.lua",
     "/disk/os/lock.lua",
     "/disk/boot/boot-animation",
-    "/disk/error/BSOD.lua",
     -- Add more file names as needed
 }
 
