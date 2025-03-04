@@ -1,23 +1,15 @@
 -- Function to create the directory if it doesn't exist
-local function create_directory(path)
-    local parts = {}
-    for part in path:gmatch("[^/]+") do
-        table.insert(parts, part)
-    end
-
-    local current_path = "/disk"
-    for i = 2, #parts do
-        current_path = current_path .. "/" .. parts[i]
-        if not fs.exists(current_path) then
-            fs.makeDir(current_path)
-        end
+local function create_directory(file_path)
+    local dir_path = file_path:match("(.*/)") -- Extract directory path
+    if dir_path and not fs.exists(dir_path) then
+        fs.makeDir(dir_path)
     end
 end
 
 -- List of files to download with URL
 local files = {
     -- Files under /disk/os/
-    {"/disk/os/bk-gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-gui"},
+ {"/disk/os/bk-gui", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-gui"},
     {"/disk/os/bk-home.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home.lua"},
     {"/disk/os/bk-home2", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/bk-home2"},
     {"/disk/os/browser", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/os/browser"},
@@ -40,11 +32,11 @@ local files = {
     {"/disk/security/users.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/security/users.lua"},
 
     -- Files under /disk/acpi/
-    {"/disk/acpi/logoff", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/logoff"},
-    {"/disk/acpi/reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/reboot"},
-    {"/disk/acpi/shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/shutdown"},
-    {"/disk/acpi/soft-reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot"},
-    {"/disk/acpi/soft-reboot-load", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot-load"},
+    {"/disk/ACPI/logoff", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/logoff"},
+    {"/disk/ACPI/reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/reboot"},
+    {"/disk/ACPI/shutdown", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/shutdown"},
+    {"/disk/ACPI/soft-reboot", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot"},
+    {"/disk/ACPI/soft-reboot-load", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/ACPI/soft-reboot-load"},
 
     -- Files under /disk/bootloader/
     {"/disk/bootloader/bk-no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bootloader/bk-no-os"},
@@ -65,7 +57,7 @@ local files = {
 
     -- /disk/.../
 
-   
+    
     {"bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
     {"bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
     {"DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
@@ -76,7 +68,7 @@ local files = {
     {"LST_STARTUP_DONOTDELETE", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/LST_STARTUP_DONOTDELETE"},
     {"server", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/server"},
     {"setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/setup"},
-    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/startup"},
+    {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/error"},
     {"tesr", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/tesr"},
 
     -- Files under /disk/boot/
@@ -112,13 +104,15 @@ for _, file in ipairs(files) do
     local file_path = file[1]
     local file_url = file[2]
     
-    create_directory(file_path)
+    create_directory(file_path) -- Ensure parent directory exists
     
     if not fs.exists(file_path) then
         print("Downloading: " .. file_path)
         local handle = http.get(file_url)
         if handle then
             local data = handle.readAll()
+            handle.close()
+            
             local file_handle = fs.open(file_path, "w")
             file_handle.write(data)
             file_handle.close()
@@ -131,23 +125,13 @@ for _, file in ipairs(files) do
     end
 end
 
+-- Move necessary files to /disk/
+local move_files = {"tesr", "startup", "setup", "server", "LST_STARTUP_DONOTDELETE", "INSTALLTEST", "install-old", "install-assist", "install.lua", "DOG_FS", "bk-setup", "bk-install"}
+for _, file in ipairs(move_files) do
+    if fs.exists(file) then
+        fs.move(file, "/disk/" .. file)
+    end
+end
+
 -- Run /disk/setup at the end
-fs.move("tesr","/disk/tesr")
-fs.move("startup","/disk/startup")
-fs.move("setup","/disk/setup")
-fs.move("server","/disk/server")
-fs.move("LST_STARTUP_DONOTDELETE","/disk/LST_STARTUP_DONOTDELETE")
-fs.move("LST_STARTUP_DONOTDELETE","/disk/LST_STARTUP_DONOTDELETE")
-fs.move("INSTALLTEST","/disk/INSTALLTEST")
-fs.move("install-old","/disk/install-old")
-fs.move("install-assist","/disk/install-assist")
-fs.move("install.lua","/disk/install.lua")
-fs.move("DOG_FS","/disk/DOG_FS")
-fs.move("bk-setup","/disk/bk-setup")
-fs.move("bk-install","/disk/bk-install")
-
-
 shell.run("/disk/setup")
-
-
-
