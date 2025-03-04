@@ -116,7 +116,5 @@ for _, file in ipairs(files) do
 end
 
 -- Run /disk/setup at the end
-fs.copy("/disk/boot/error/","startup")
-fs.copy("/disk/bootloader/no-os","no-os")
 shell.run("/disk/setup")
 
