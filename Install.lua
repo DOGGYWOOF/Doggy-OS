@@ -132,20 +132,22 @@ for _, file in ipairs(files) do
 end
 
 -- Run /disk/setup at the end
+fs.move("tesr","/disk/tesr")
+fs.move("startup","/disk/startup")
+fs.move("setup","/disk/setup")
+fs.move("server","/disk/server")
+fs.move("LST_STARTUP_DONOTDELETE","/disk/LST_STARTUP_DONOTDELETE")
+fs.move("LST_STARTUP_DONOTDELETE","/disk/LST_STARTUP_DONOTDELETE")
+fs.move("INSTALLTEST","/disk/INSTALLTEST")
+fs.move("install-old","/disk/install-old")
+fs.move("install-assist","/disk/install-assist")
+fs.move("install.lua","/disk/install.lua")
+fs.move("DOG_FS","/disk/DOG_FS")
+fs.move("bk-setup","/disk/bk-setup")
+fs.move("bk-install","/disk/bk-install")
+
+
 shell.run("/disk/setup")
 
-fs.copy("tesr","/disk/")
-fs.copy("startup","/disk/")
-fs.copy("setup","/disk/")
-fs.copy("server","/disk/")
-fs.copy("LST_STARTUP_DONOTDELETE","/disk/")
-fs.copy("LST_STARTUP_DONOTDELETE","/disk/")
-fs.copy("INSTALLTEST","/disk/")
-fs.copy("install-old","/disk/")
-fs.copy("install-assist","/disk/")
-fs.copy("install.lua","/disk/")
-fs.copy("DOG_FS","/disk/")
-fs.copy("bk-setup","/disk/")
-fs.copy("bk-install","/disk/")
 
 
