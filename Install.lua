@@ -63,6 +63,22 @@ local files = {
     {"no-os", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/no-os"},
     {"startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/startup"},
 
+       -- Root DIR for Disk
+    {"/disk/.BL", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/.BL"},
+    {"/disk/.settings", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/.settings"},
+    {"/disk/bk-install", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-install"},
+    {"/disk/bk-setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/bk-setup"},
+    {"/disk/DOG_FS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/DOG_FS"},
+    {"/disk/install.lua", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install.lua"},
+    {"/disk/install-assist", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-assist"},
+    {"/disk/install-old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/install-old"},
+    {"/disk/INSTALLTEST", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/INSTALLTEST"},
+    {"/disk/LST_STARTUP_DONOTDELETE", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/LST_STARTUP_DONOTDELETE"},
+    {"/disk/server", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/server"},
+    {"/disk/setup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/setup"},
+    {"/disk/startup", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/startup"},
+    {"/disk/tesr", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/tesr"},
+
     -- Files under /disk/boot/
     {"/disk/boot/anim.old", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/anim.old"},
     {"/disk/boot/BIOS", "https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/v13-Standard/disk/boot/BIOS"},
