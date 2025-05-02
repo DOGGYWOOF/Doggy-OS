@@ -47,7 +47,7 @@ local function displayErrorGUI(missingFiles)
 
     -- Set the message for the error
     term.setCursorPos(2, 4)
-    term.write("The system's ROM is blocking the boot process.")
+    term.write("System software damaged...")
 
     -- List all the missing files
     local y = 6
@@ -164,7 +164,7 @@ local function displayMenu()
         term.setBackgroundColor(colors.blue)
         term.setCursorPos(2, 2)
         term.write("Updating startup file...")
-        local file = http.get("https://pastebin.com/raw/gStUt30Q")
+        local file = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/startup")
         if file then
             local content = file.readAll()
             local f = fs.open("startup", "w")
