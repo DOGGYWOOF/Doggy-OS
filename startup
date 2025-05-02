@@ -1,0 +1,279 @@
+-- DOGGY OS v13 BOOTROM SCRIPT
+-- OWNER: DOGGYWOOF
+-- Firmware Revision: v1.2.3
+
+local requiredFiles = {
+    "/disk/bootloader/VA11-ILLA.lua",
+    "/disk/os/home.lua",
+    "/disk/os/lock.lua",
+    "/disk/boot/boot-animation",
+}
+
+-- Function to check if all required files exist
+os.pullEvent = os.pullEventRaw
+
+local function checkFiles()
+    local missingFiles = {}
+
+    for _, fileName in ipairs(requiredFiles) do
+        if not fs.exists(fileName) then
+            table.insert(missingFiles, "[MISSING] " .. fileName)
+        end
+    end
+
+    return missingFiles
+end
+
+-- Function to check if /firmware/ directory exists
+local function checkFirmware()
+    if not fs.exists("/.firmware/") then
+        return true
+    end
+    return false
+end
+
+-- Function to display the error GUI for missing files
+local function displayErrorGUI(missingFiles)
+    -- Set background color to blue
+    term.setBackgroundColor(colors.blue)
+    term.clear()
+
+    -- Draw a border around the error window
+    paintutils.drawBox(1, 1, 51, 17)
+
+    -- Set title for the error window
+    term.setCursorPos(2, 2)
+    term.write("BOOTROM ERROR!")
+
+    -- Set the message for the error
+    term.setCursorPos(2, 4)
+    term.write("The system's ROM is blocking the boot process.")
+
+    -- List all the missing files
+    local y = 6
+    for _, file in ipairs(missingFiles) do
+        term.setCursorPos(2, y)
+        term.write(file)
+        y = y + 1
+    end
+
+    -- Display footer message
+    term.setCursorPos(2, y + 2)
+    term.write("Press any key to reboot...")
+    os.pullEvent("key")  -- Wait for any key press
+    os.reboot()  -- Reboot after key press
+end
+
+-- Function to display the error GUI for missing firmware
+local function displayFirmwareErrorGUI()
+    -- Set background color to blue
+    term.setBackgroundColor(colors.blue)
+    term.clear()
+
+    -- Draw a border around the error window
+    paintutils.drawBox(1, 1, 51, 17)
+
+    -- Set title for the error window
+    term.setCursorPos(2, 2)
+    term.write("BOOTROM ERROR!")
+
+    -- Set the message for the error
+    term.setCursorPos(2, 4)
+    term.write("BOOTROM data is corrupted or missing!")
+
+    -- Additional detailed message
+    local y = 6
+    term.setCursorPos(2, y)
+    term.write("The required firmware data is either corrupted or")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("missing from the system's ROM. This prevents the")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("system from booting properly. Please check the firmware")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("files and ensure they are intact and properly configured.")
+
+    -- Prompt to restore firmware
+    y = y + 2
+    term.setCursorPos(2, y)
+    term.write("Press DEL to restore firmware...")
+
+    -- Wait for user input (DEL key to restore firmware)
+    local event, key = os.pullEvent("key")
+    if key == keys.delete then
+        -- Create /.firmware/ directory and reboot the system
+        fs.makeDir("/.firmware/")
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("Firmware restored! Press any key to reboot...")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    else
+        -- Display message if another key is pressed
+        term.setCursorPos(2, y + 2)
+        term.write("Invalid key. Press DEL to restore firmware.")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    end
+end
+
+-- Function to check if redstone signal is on the right
+local function isRedstoneRight()
+    return redstone.getInput("right") -- Returns true if there's a redstone signal on the right
+end
+
+-- Function to show the menu with blue background
+local function displayMenu()
+    -- Set background color to blue for the menu
+    term.setBackgroundColor(colors.blue)
+    term.clear()
+
+    -- Draw the menu window
+    paintutils.drawBox(1, 1, 51, 17)
+    term.setCursorPos(2, 2)
+    term.write("BOOTROM MENU")
+
+    -- Display the menu options
+    local y = 4
+    term.setCursorPos(2, y)
+    term.write("1. Update (Download startup file)")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("2. Reset Firmware (Wipe /.firmware/)")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("3. Load Recovery/Installer Script")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("4. Reboot System")
+    y = y + 1
+    term.setCursorPos(2, y)
+    term.write("5. System Info")
+
+    -- Wait for user input to select an option
+    term.setCursorPos(2, y + 2)
+    term.write("Press 1, 2, 3, 4, or 5 to select an option.")
+    
+    local event, key = os.pullEvent("key")
+    if key == keys.one then
+        -- Update: Download the "startup" file from pastebin
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("Updating startup file...")
+        local file = http.get("https://pastebin.com/raw/gStUt30Q")
+        if file then
+            local content = file.readAll()
+            local f = fs.open("startup", "w")
+            f.write(content)
+            f.close()
+            term.setCursorPos(2, 4)
+            term.write("Update successful! Press any key to reboot...")
+            os.pullEvent("key")  -- Wait for any key press
+            os.reboot()  -- Reboot after key press
+        else
+            term.setCursorPos(2, 4)
+            term.write("Failed to download file.")
+            os.pullEvent("key")  -- Wait for any key press
+            os.reboot()  -- Reboot after key press
+        end
+    elseif key == keys.two then
+        -- Reset Firmware: Wipe all data in /.firmware/
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("Resetting firmware...")
+        fs.delete("/.firmware/")
+        fs.makeDir("/.firmware/")
+        term.setCursorPos(2, 4)
+        term.write("Firmware reset! Press any key to reboot...")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    elseif key == keys.three then
+        -- Load Recovery/Installer Script
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("Downloading recovery script...")
+        local file = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/install.lua")
+        if file then
+            local content = file.readAll()
+            local f = fs.open("/disk/install.lua", "w")
+            f.write(content)
+            f.close()
+            term.setCursorPos(2, 4)
+            term.write("Recovery script downloaded! Running...")
+            os.sleep(2)
+            -- Run the downloaded script
+            shell.run("/disk/install.lua")
+            os.reboot()  -- Reboot after script execution
+        else
+            term.setCursorPos(2, 4)
+            term.write("Failed to download recovery script.")
+            os.pullEvent("key")  -- Wait for any key press
+            os.reboot()  -- Reboot after key press
+        end
+    elseif key == keys.four then
+        -- Reboot System
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("Rebooting system...")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    elseif key == keys.five then
+        -- Display System Info
+        term.clear()
+        term.setBackgroundColor(colors.blue)
+        term.setCursorPos(2, 2)
+        term.write("System Information")
+
+        -- Display the system info (dummy values here, replace with actual values)
+        term.setCursorPos(2, 4)
+        term.write("Doggy OS Version: v13.0")
+        term.setCursorPos(2, 6)
+        term.write("Bootloader Version: VA11-ILLA 12.0")
+        term.setCursorPos(2, 8)
+        term.write("Firmware Revision: v1.2.3")
+
+        -- Wait for user to press a key
+        term.setCursorPos(2, 10)
+        term.write("Press any key to reboot...")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    else
+        -- Invalid key press
+        term.setCursorPos(2, 4)
+        term.write("Invalid option. Press 1, 2, 3, 4, or 5.")
+        os.pullEvent("key")  -- Wait for any key press
+        os.reboot()  -- Reboot after key press
+    end
+end
+
+-- Main function to execute no-os.lua if files or firmware are missing
+local function main()
+    local missing = checkFiles()
+
+    if checkFirmware() then
+        -- Display firmware missing error
+        displayFirmwareErrorGUI()
+    elseif isRedstoneRight() then
+        -- Display menu if there's a redstone signal on the right
+        displayMenu()
+    elseif #missing > 0 then
+        -- Display GUI for the boot error
+        displayErrorGUI(missing)
+        -- Wait for any key press before rebooting
+        os.pullEvent("key")
+        os.reboot()  -- Reboot after key press
+    else
+        -- All files exist, continue with your code here
+        shell.run("/disk/boot/CFW-check.lua")
+    end
+end
+
+-- Run the main function
+main()
