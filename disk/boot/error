@@ -145,7 +145,7 @@ local function displayMenu()
     term.write("2. Reset Firmware (Wipe /.firmware/)")
     y = y + 1
     term.setCursorPos(2, y)
-    term.write("3. Load Recovery/Installer Script")
+    term.write("3. Load Recovery Script")
     y = y + 1
     term.setCursorPos(2, y)
     term.write("4. Reboot System")
@@ -198,7 +198,7 @@ local function displayMenu()
         term.setBackgroundColor(colors.blue)
         term.setCursorPos(2, 2)
         term.write("Downloading recovery script...")
-        local file = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/install.lua")
+        local file = http.get("https://raw.githubusercontent.com/DOGGYWOOF/Doggy-OS/refs/heads/v13-Standard/BootROM%20recovery%20script")
         if file then
             local content = file.readAll()
             local f = fs.open("/disk/install.lua", "w")
