@@ -1,230 +1,508 @@
 os.pullEvent = os.pullEventRaw
 
+local isGuiRunning = true
+
+-- ==========================================
+-- ACPI Fullscreen Enforcer & GUI Killer
+-- ==========================================
+local originalShellRun = shell.run
+shell.run = function(...)
+    local args = {...}
+    if type(args[1]) == "string" and string.upper(args[1]):find("ACPI") then
+        -- 1. Restore the raw physical screen
+        term.redirect(term.native()) 
+        term.setBackgroundColor(colors.black)
+        term.setTextColor(colors.white)
+        term.clear()
+        term.setCursorPos(1, 1)
+        
+        -- 2. Signal the GUI Window Manager to completely terminate
+        isGuiRunning = false
+        os.queueEvent("kill_gui")
+        
+        -- 3. Run the ACPI script natively
+        return originalShellRun(...)
+    end
+    return originalShellRun(...)
+end
+
 local w, h = term.getSize()
 local nOption = 1
 local isStartMenuOpen = false
 local isPowerMenuOpen = false
-local menuOptions = {"Command", "Programs", "Power Menu"}
+local menuOptions = {"Command", "Programs"}
 local powerOptions = {"Shutdown", "Reboot", "Sign Out", "Cancel"}
 
--- Create windows for taskbar, start menu, and power menu
-local taskbar = window.create(term.current(), 1, h, w, 1)
-local startMenu = window.create(term.current(), 1, h - 10, 20, 10, false)
-local powerMenu = window.create(term.current(), math.floor(w / 2) - 12, math.floor(h / 2) - 7, 24, 15, false)
+-- ==========================================
+-- Doggy OS Theme Palette
+-- ==========================================
+local theme = {
+    desktopBg       = colors.green,
+    taskbarBg       = colors.brown,
+    taskbarText     = colors.white,
+    startBtnBg      = colors.orange,
+    startBtnText    = colors.white,
+    startBtnActive  = colors.yellow,
+    startTxtActive  = colors.brown,
+    tabActiveBg     = colors.orange,
+    tabInactiveBg   = colors.gray,
+    titleActiveBg   = colors.brown,
+    titleInactiveBg = colors.gray,
+    menuBg          = colors.lightGray,
+    menuText        = colors.black,
+    menuHoverBg     = colors.orange,
+    menuHoverText   = colors.white,
+    powerMenuBtn    = colors.red,
+    windowBg        = colors.black,
+    resizeHandle    = colors.orange
+}
 
--- Helper function to draw the taskbar with the current time
+-- ==========================================
+-- Window Management System
+-- ==========================================
+local screenBuffer = window.create(term.current(), 1, 1, w, h, true)
+local taskbar = window.create(screenBuffer, 1, h, w, 1, true)
+
+local startMenuH = #menuOptions + 3
+local startMenuW = 20
+local startMenuY = h - startMenuH
+local startMenu = window.create(screenBuffer, 1, startMenuY, startMenuW, startMenuH, false)
+
+local powerMenuH = #powerOptions + 2
+local powerMenuW = 24
+local powerMenuX = math.floor((w - powerMenuW) / 2)
+local powerMenuY = math.floor((h - powerMenuH) / 2)
+local powerMenu = window.create(screenBuffer, powerMenuX, powerMenuY, powerMenuW, powerMenuH, false)
+
+local windows = {}
+local activeDragWindow = nil
+local activeResizeWindow = nil
+
+local passEventToProcess -- Forward declaration
+
+-- ==========================================
+-- Window Resizing Logic
+-- ==========================================
+local function toggleMaximize(winData)
+    if winData.isMaximized then
+        winData.isMaximized = false
+        winData.x, winData.y = winData.prevX, winData.prevY
+        winData.w, winData.h = winData.prevW, winData.prevH
+        winData.win.reposition(winData.x, winData.y, winData.w, winData.h)
+        winData.contentWin.reposition(1, 2, winData.w, winData.h - 2)
+    else
+        winData.prevX, winData.prevY = winData.x, winData.y
+        winData.prevW, winData.prevH = winData.w, winData.h
+        winData.isMaximized = true
+        winData.x, winData.y = 1, 1
+        winData.w, winData.h = w, h - 1
+        winData.win.reposition(winData.x, winData.y, winData.w, winData.h)
+        winData.contentWin.reposition(1, 2, winData.w, winData.h - 1)
+    end
+    passEventToProcess(winData, "term_resize")
+end
+
+-- ==========================================
+-- UI Drawing Functions
+-- ==========================================
 local function drawTaskbar()
-    taskbar.setBackgroundColor(colors.green)
+    taskbar.setBackgroundColor(theme.taskbarBg)
     taskbar.clear()
     taskbar.setCursorPos(1, 1)
-    taskbar.setTextColor(colors.white)
-    taskbar.write("[ Start ]")
+    
+    if isStartMenuOpen then
+        taskbar.setBackgroundColor(theme.startBtnActive)
+        taskbar.setTextColor(theme.startTxtActive)
+    else
+        taskbar.setBackgroundColor(theme.startBtnBg)
+        taskbar.setTextColor(theme.startBtnText)
+    end
+    taskbar.write(" Doggy ")
+    
+    local taskbarSpace = w - 7 - 8
+    local numApps = math.max(1, #windows)
+    local tabWidth = math.min(16, math.floor(taskbarSpace / numApps))
+    local tX = 8
 
-    -- Display the current time on the right side
+    for i, winData in ipairs(windows) do
+        if tX + tabWidth > w - 8 then break end
+        
+        taskbar.setCursorPos(tX, 1)
+        if winData.isMinimized then
+            taskbar.setBackgroundColor(theme.taskbarBg)
+            taskbar.setTextColor(colors.lightGray)
+        elseif i == #windows then
+            taskbar.setBackgroundColor(theme.tabActiveBg)
+            taskbar.setTextColor(colors.white)
+        else
+            taskbar.setBackgroundColor(theme.tabInactiveBg)
+            taskbar.setTextColor(colors.white)
+        end
+        
+        local shortTitle = string.sub(winData.title, 1, tabWidth - 2)
+        taskbar.write(" " .. shortTitle .. string.rep(" ", tabWidth - #shortTitle - 1))
+        
+        winData.taskbarX = tX
+        winData.taskbarW = tabWidth
+        tX = tX + tabWidth
+    end
+    
+    taskbar.setBackgroundColor(theme.taskbarBg)
+    taskbar.write(string.rep(" ", w - tX + 1))
+    
+    taskbar.setTextColor(theme.taskbarText)
     local currentTime = os.date("%H:%M:%S")
-    local timeX = w - string.len(currentTime) - 1
-    taskbar.setCursorPos(timeX, 1)
+    taskbar.setCursorPos(w - #currentTime + 1, 1)
     taskbar.write(currentTime)
 end
 
--- Helper function to draw the start menu
 local function drawStartMenu()
-    if not isStartMenuOpen then
-        startMenu.setVisible(false)
-        return
-    end
-
-    startMenu.setVisible(true)
-    startMenu.setBackgroundColor(colors.green)
+    startMenu.setBackgroundColor(theme.menuBg)
     startMenu.clear()
-
     startMenu.setTextColor(colors.white)
-    startMenu.setCursorPos(2, 1)
-    startMenu.write("=== Start Menu ===")
+    startMenu.setBackgroundColor(theme.titleActiveBg)
+    startMenu.setCursorPos(1, 1)
+    startMenu.write(" Doggy OS" .. string.rep(" ", startMenuW - 9))
 
     for i, option in ipairs(menuOptions) do
-        startMenu.setCursorPos(2, 2 + i)
-        if nOption == i then
-            startMenu.setTextColor(colors.black)
-            startMenu.setBackgroundColor(colors.white)
-            startMenu.write("[ " .. option .. " ]")
-            startMenu.setBackgroundColor(colors.green)
-            startMenu.setTextColor(colors.white)
+        startMenu.setCursorPos(1, 1 + i)
+        if nOption == i and not isPowerMenuOpen then
+            startMenu.setBackgroundColor(theme.menuHoverBg)
+            startMenu.setTextColor(theme.menuHoverText)
         else
-            startMenu.write("[ " .. option .. " ]")
+            startMenu.setBackgroundColor(theme.menuBg)
+            startMenu.setTextColor(theme.menuText)
         end
+        startMenu.write(" " .. option .. string.rep(" ", startMenuW - #option - 1))
     end
+    
+    startMenu.setCursorPos(1, startMenuH)
+    if nOption == 3 and not isPowerMenuOpen then
+        startMenu.setBackgroundColor(theme.powerMenuBtn)
+        startMenu.setTextColor(colors.white)
+    else
+        startMenu.setBackgroundColor(colors.gray)
+        startMenu.setTextColor(colors.white)
+    end
+    startMenu.write(" Power Menu" .. string.rep(" ", startMenuW - 11))
 end
 
--- Helper function to draw the power menu
 local function drawPowerMenu()
-    if not isPowerMenuOpen then
-        powerMenu.setVisible(false)
-        return
-    end
-
-    powerMenu.setVisible(true)
-    powerMenu.setBackgroundColor(colors.black)
+    powerMenu.setBackgroundColor(theme.menuBg)
     powerMenu.clear()
-
+    powerMenu.setBackgroundColor(theme.titleActiveBg)
     powerMenu.setTextColor(colors.white)
-    powerMenu.setCursorPos(2, 1)
-    powerMenu.write("=== Power Menu ===")
+    powerMenu.setCursorPos(1, 1)
+    powerMenu.write(" Power Options" .. string.rep(" ", powerMenuW - 14))
 
     for i, option in ipairs(powerOptions) do
-        powerMenu.setCursorPos(2, 3 + i)
+        powerMenu.setCursorPos(1, 1 + i)
         if nOption == i then
-            powerMenu.setTextColor(colors.black)
-            powerMenu.setBackgroundColor(colors.white)
-            powerMenu.write("[ " .. option .. " ]")
-            powerMenu.setBackgroundColor(colors.black)
-            powerMenu.setTextColor(colors.white)
+            powerMenu.setBackgroundColor(theme.menuHoverBg)
+            powerMenu.setTextColor(theme.menuHoverText)
         else
-            powerMenu.write("[ " .. option .. " ]")
+            powerMenu.setBackgroundColor(theme.menuBg)
+            powerMenu.setTextColor(theme.menuText)
+        end
+        powerMenu.write(" " .. option .. string.rep(" ", powerMenuW - #option - 1))
+    end
+end
+
+local function redrawUI()
+    screenBuffer.setVisible(false)
+    
+    -- Clean Desktop Background
+    screenBuffer.setBackgroundColor(theme.desktopBg)
+    screenBuffer.clear()
+
+    -- Windows
+    for i, winData in ipairs(windows) do
+        if winData.isMinimized then
+            winData.win.setVisible(false)
+        else
+            winData.win.setVisible(true)
+            winData.win.reposition(winData.x, winData.y)
+            
+            local isActive = (i == #windows)
+            
+            -- Title Bar
+            winData.win.setCursorPos(1, 1)
+            winData.win.setBackgroundColor(isActive and theme.titleActiveBg or theme.titleInactiveBg)
+            winData.win.setTextColor(colors.white)
+            winData.win.clearLine()
+            winData.win.setCursorPos(1, 1)
+            winData.win.write(" " .. winData.title)
+            
+            -- Controls exactly at the edge (w - 2 starts 3 blocks from the right)
+            winData.win.setCursorPos(winData.w - 2, 1)
+            winData.win.setBackgroundColor(colors.gray); winData.win.setTextColor(colors.white); winData.win.write("_") 
+            winData.win.setBackgroundColor(colors.lightGray); winData.win.setTextColor(colors.black); winData.win.write(winData.isMaximized and "v" or "^") 
+            winData.win.setBackgroundColor(colors.red); winData.win.setTextColor(colors.white); winData.win.write("X") 
+            
+            -- Content
+            if winData.contentWin then winData.contentWin.redraw() end
+            
+            -- Bottom Border
+            if not winData.isMaximized then
+                winData.win.setCursorPos(1, winData.h)
+                winData.win.setBackgroundColor(theme.titleInactiveBg)
+                winData.win.clearLine()
+                
+                winData.win.setCursorPos(winData.w, winData.h)
+                winData.win.setBackgroundColor(theme.resizeHandle)
+                winData.win.setTextColor(colors.white)
+                winData.win.write("+")
+            end
         end
     end
-end
 
--- Helper function to draw ASCII art in the center
-local function drawASCIIArt()
-    local art = {
-        "     |\\_/|                  ",
-        "     | @ @   Woof!         ",
-        "     |   <>              _  ",
-        "     |  _/\\------____ ((| |))",
-        "     |               `--' |   ",
-        " ____|_       ___|   |___.'  ",
-        "/_/_____/____/_______|        "
-    }
-    local startX = math.floor((w - 26) / 2)  -- Centering the art horizontally
-    local startY = math.floor((h - #art) / 2)  -- Centering the art vertically
-
-    term.setTextColor(colors.white)
-    for i, line in ipairs(art) do
-        term.setCursorPos(startX, startY + i - 1)
-        term.write(line)
-    end
-end
-
--- Function to redraw the entire UI
-local function redrawUI()
-    term.setBackgroundColor(colors.blue)
-    term.clear()
     drawTaskbar()
-    drawASCIIArt()  -- Draw ASCII art
+    
     if isPowerMenuOpen then
-        drawPowerMenu()
+        powerMenu.setVisible(false); drawPowerMenu(); powerMenu.setVisible(true)
+    elseif isStartMenuOpen then
+        startMenu.setVisible(false); drawStartMenu(); startMenu.setVisible(true)
+    end
+
+    screenBuffer.setVisible(true)
+end
+
+-- ==========================================
+-- Application Spawning
+-- ==========================================
+local function spawnApp(title, path)
+    local wW, wH = 34, 14 
+    local offset = (#windows * 2) % 10
+    local sX = math.floor((w - wW) / 2) + offset
+    local sY = math.floor((h - wH) / 2) + offset
+    
+    local frameWin = window.create(screenBuffer, sX, sY, wW, wH, true)
+    local contentWin = window.create(frameWin, 1, 2, wW, wH - 2, true)
+    
+    local winData = {
+        title = title, 
+        x = sX, y = sY, w = wW, h = wH,
+        prevX = sX, prevY = sY, prevW = wW, prevH = wH,
+        isMaximized = false, isMinimized = false,
+        win = frameWin, contentWin = contentWin
+    }
+    
+    winData.co = coroutine.create(function()
+        term.setBackgroundColor(theme.windowBg)
+        term.setTextColor(colors.white)
+        term.clear()
+        term.setCursorPos(1,1)
+        shell.run(path)
+    end)
+    
+    table.insert(windows, winData)
+    redrawUI()
+    
+    local old = term.redirect(contentWin)
+    local ok, filter = coroutine.resume(winData.co)
+    term.redirect(old)
+    if ok then winData.filter = filter end
+end
+
+local function runProgramOrAction(option)
+    local wasPowerMenu = isPowerMenuOpen
+    isStartMenuOpen = false; isPowerMenuOpen = false
+    redrawUI()
+
+    if wasPowerMenu then
+        if option == 1 then shell.run("/disk/ACPI/shutdown")
+        elseif option == 2 then shell.run("/disk/ACPI/reboot")
+        elseif option == 3 then shell.run("/disk/ACPI/logoff")
+        end
     else
-        drawStartMenu()
+        if option == 1 then spawnApp("Command", "/disk/os/home.lua")
+        elseif option == 2 then spawnApp("Programs", "/disk/os/programs") end
     end
 end
 
--- Initial UI drawing
-redrawUI()
+-- ==========================================
+-- Event Dispatching
+-- ==========================================
+function passEventToProcess(winData, e, p1, p2, p3)
+    if not winData.co or coroutine.status(winData.co) == "dead" then return end
+    
+    if winData.isMinimized and (e == "mouse_click" or e == "mouse_drag" or e == "mouse_up" or e == "mouse_scroll" or e == "key" or e == "char") then return end
+    
+    local args = {e, p1, p2, p3}
+    
+    if e == "mouse_click" or e == "mouse_drag" or e == "mouse_up" or e == "mouse_scroll" then
+        local x = (e == "mouse_scroll") and p2 or p2
+        local y = (e == "mouse_scroll") and p3 or p3
+        local bottomOffset = winData.isMaximized and 0 or 1
+        
+        if x >= winData.x and x < winData.x + winData.w and y > winData.y and y < winData.y + winData.h - bottomOffset then
+            args[3] = x - winData.x + 1
+            args[4] = y - winData.y
+        else
+            return
+        end
+    end
+    
+    if winData.filter == nil or winData.filter == e then
+        local old = term.redirect(winData.contentWin)
+        local ok, filter = coroutine.resume(winData.co, table.unpack(args))
+        term.redirect(old)
+        if ok then winData.filter = filter end
+    end
+end
 
--- Start the timer for updating the time every second
-local timerId = os.startTimer(1)
-
--- Function to handle mouse clicks
 local function handleMouseClick(x, y)
-    if y == h and x >= 1 and x <= 7 then
-        isStartMenuOpen = not isStartMenuOpen
-        isPowerMenuOpen = false
-        redrawUI()
-    elseif isStartMenuOpen and x >= 1 and x <= 20 and y >= h - 10 and y <= h - 1 then
-        local clickedOption = y - (h - 10) - 1
-        if clickedOption >= 1 and clickedOption <= #menuOptions then
-            nOption = clickedOption
-            if nOption == 3 then
-                isStartMenuOpen = false
-                isPowerMenuOpen = true
-                redrawUI()
-            else
+    if isPowerMenuOpen then
+        if x >= powerMenuX and x < powerMenuX + powerMenuW and y >= powerMenuY and y < powerMenuY + powerMenuH then
+            runProgramOrAction(y - powerMenuY)
+        else isPowerMenuOpen = false; redrawUI() end
+        return true
+    end
+
+    if isStartMenuOpen then
+        if x >= 1 and x <= startMenuW and y >= startMenuY and y < startMenuY + startMenuH then
+            local optionIndex = y - startMenuY
+            if optionIndex >= 1 and optionIndex <= #menuOptions then
+                runProgramOrAction(optionIndex)
+            elseif optionIndex == startMenuH - 1 then
+                isStartMenuOpen = false; isPowerMenuOpen = true; nOption = 1; redrawUI()
+            end
+        else
+            if y == h and x >= 1 and x <= 7 then return false end
+            isStartMenuOpen = false; redrawUI()
+        end
+        return true
+    end
+
+    if y == h then
+        if x >= 1 and x <= 7 then
+            isStartMenuOpen = not isStartMenuOpen; nOption = 1; redrawUI()
+            return true
+        end
+        
+        for i, winData in ipairs(windows) do
+            if winData.taskbarX and x >= winData.taskbarX and x < winData.taskbarX + winData.taskbarW then
+                if winData.isMinimized then
+                    winData.isMinimized = false
+                    table.remove(windows, i); table.insert(windows, winData)
+                elseif i == #windows then
+                    winData.isMinimized = true
+                else
+                    table.remove(windows, i); table.insert(windows, winData)
+                end
+                redrawUI(); return true
+            end
+        end
+        return true
+    end
+
+    for i = #windows, 1, -1 do
+        local wWin = windows[i]
+        if not wWin.isMinimized and x >= wWin.x and x < wWin.x + wWin.w and y >= wWin.y and y < wWin.y + wWin.h then
+            if i ~= #windows then table.remove(windows, i); table.insert(windows, wWin); redrawUI() end
+            
+            if y == wWin.y then
+                local localX = x - wWin.x + 1
+                if localX == wWin.w then table.remove(windows, #windows); redrawUI()
+                elseif localX == wWin.w - 1 then toggleMaximize(wWin); redrawUI()
+                elseif localX == wWin.w - 2 then wWin.isMinimized = true; redrawUI()
+                else
+                    if not wWin.isMaximized then
+                        activeDragWindow = wWin
+                        wWin.dragOffsetX = x - wWin.x; wWin.dragOffsetY = y - wWin.y
+                    end
+                end
+                return true
+            elseif not wWin.isMaximized and y == wWin.y + wWin.h - 1 then
+                local localX = x - wWin.x + 1
+                if localX == wWin.w then activeResizeWindow = wWin end
                 return true
             end
+            return false
         end
     end
     return false
 end
 
--- Function to manage running programs and power options
-local function runProgramOrAction(option)
-    -- Change to black background and white text
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.white)
-    term.clear()
+-- ==========================================
+-- Main Boot & Loop
+-- ==========================================
+redrawUI()
+local timerId = os.startTimer(1)
 
-    if isPowerMenuOpen then
-        if option == 1 then
-            shell.run("/disk/ACPI/shutdown")  -- Shutdown
-        elseif option == 2 then
-            shell.run("/disk/ACPI/reboot")    -- Reboot
-        elseif option == 3 then
-            shell.run("/disk/ACPI/logoff")    -- Sign Out
-        elseif option == 4 then
-            shell.run("/disk/os/gui")          -- Run GUI when Cancel is selected
-            return true
-        end
-        return true  -- Indicate an action was taken
-    end
-
-    if option == 1 then
-        shell.run("/disk/os/home.lua")
-    elseif option == 2 then
-        shell.run("/disk/os/programs")
-    end
+while isGuiRunning do
+    local eventData = {os.pullEvent()}
+    local e = eventData[1]
     
-    return false  -- Indicate no action was taken
-end
-
--- Main event handling loop
-while true do
-    local e, p1, p2, p3 = os.pullEvent()
+    -- Terminate GUI loop cleanly if instructed by the ACPI interceptor
+    if e == "kill_gui" then break end
+    
+    local handledBySystem = false
 
     if e == "mouse_click" then
-        local button, x, y = p1, p2, p3
-        if handleMouseClick(x, y) then
-            runProgramOrAction(nOption)  -- Execute action
+        handledBySystem = handleMouseClick(eventData[3], eventData[4])
+        
+    elseif e == "mouse_drag" then
+        if activeDragWindow then
+            local newX = eventData[3] - activeDragWindow.dragOffsetX
+            local newY = eventData[4] - activeDragWindow.dragOffsetY
+            if newX < 1 then newX = 1 end; if newX > w - 4 then newX = w - 4 end
+            if newY < 1 then newY = 1 end; if newY > h - 2 then newY = h - 2 end 
+            activeDragWindow.x = newX; activeDragWindow.y = newY
+            redrawUI(); handledBySystem = true
+            
+        elseif activeResizeWindow then
+            local newW = eventData[3] - activeResizeWindow.x + 1
+            local newH = eventData[4] - activeResizeWindow.y + 1
+            if newW < 16 then newW = 16 end; if newH < 6 then newH = 6 end
+            
+            if activeResizeWindow.w ~= newW or activeResizeWindow.h ~= newH then
+                activeResizeWindow.w = newW; activeResizeWindow.h = newH
+                activeResizeWindow.win.reposition(activeResizeWindow.x, activeResizeWindow.y, newW, newH)
+                activeResizeWindow.contentWin.reposition(1, 2, newW, newH - 2)
+                passEventToProcess(activeResizeWindow, "term_resize")
+                redrawUI()
+            end
+            handledBySystem = true
         end
-    elseif e == "key" and (isStartMenuOpen or isPowerMenuOpen) then
-        local key = p1
-
-        if key == keys.up then
-            if nOption > 1 then
-                nOption = nOption - 1
-            else
-                nOption = #menuOptions
-            end
-            redrawUI()
-        elseif key == keys.down then
-            if isPowerMenuOpen then
-                if nOption < #powerOptions then
-                    nOption = nOption + 1
-                else
-                    nOption = 1 -- Wrap around to "Shutdown"
-                end
-            else
-                if nOption < #menuOptions then
-                    nOption = nOption + 1
-                else
-                    nOption = 1
-                end
-            end
-            redrawUI()
-        elseif key == keys.enter then
-            if runProgramOrAction(nOption) then
-                -- Do nothing, action taken
-            else
-                break  -- Exit loop only if no action taken
-            end
-        end
-    elseif e == "timer" and p1 == timerId then
-        drawTaskbar()  -- Redraw taskbar to update time
-        timerId = os.startTimer(1)  -- Reset the timer for the next second
+        
+    elseif e == "mouse_up" then
+        if activeDragWindow then activeDragWindow = nil; handledBySystem = true end
+        if activeResizeWindow then activeResizeWindow = nil; handledBySystem = true end
+        
+    elseif e == "timer" and eventData[2] == timerId then
+        taskbar.setVisible(false); drawTaskbar(); taskbar.setVisible(true)
+        timerId = os.startTimer(1)
     end
-end
 
--- Final screen settings before running the selected action
-term.setBackgroundColor(colors.black)
-term.setTextColor(colors.white)
-term.clear()
+    if e == "key" and (isStartMenuOpen or isPowerMenuOpen) then
+        handledBySystem = true
+        local key = eventData[2]
+        local maxOptions = isPowerMenuOpen and #powerOptions or (#menuOptions + 1)
+        
+        if key == keys.up then nOption = nOption > 1 and (nOption - 1) or maxOptions; redrawUI()
+        elseif key == keys.down then nOption = nOption < maxOptions and (nOption + 1) or 1; redrawUI()
+        elseif key == keys.enter then
+            if isStartMenuOpen and nOption == #menuOptions + 1 then
+                isStartMenuOpen = false; isPowerMenuOpen = true; nOption = 1; redrawUI()
+            else runProgramOrAction(nOption) end
+        end
+    end
+
+    if not handledBySystem then
+        for i = #windows, 1, -1 do
+            local winData = windows[i]
+            if e == "key" or e == "key_up" or e == "char" then
+                if i == #windows then passEventToProcess(winData, table.unpack(eventData)) end
+            else passEventToProcess(winData, table.unpack(eventData)) end
+        end
+    end
+
+    local needsRedraw = false
+    for i = #windows, 1, -1 do
+        if windows[i].co and coroutine.status(windows[i].co) == "dead" then
+            table.remove(windows, i); needsRedraw = true
+        end
+    end
+    if needsRedraw then redrawUI() end
+end
