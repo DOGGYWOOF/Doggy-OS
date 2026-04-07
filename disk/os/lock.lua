@@ -1,54 +1,100 @@
 -- Constants for security configuration
-local MAX_ATTEMPTS = 3   -- Maximum number of incorrect password attempts allowed
-local LOCKOUT_TIME = 30  -- Lockout time in seconds after reaching maximum attempts
+local MAX_ATTEMPTS = 3
+local LOCKOUT_TIME = 30
+local OS_VERSION = "Doggy OS v13"
 
 local USERS_FOLDER = "/disk/users/"
 local ERROR_FOLDER = "/disk/error/"
 local BSOD_PROGRAM = "BSOD.lua"
 local CURRENT_USER_FILE = ".currentusr"
 local SHOW_ALL_USERS_FILE = "/disk/config/security/login/ShowAllUsers.cfg"
+local SECURITY_LOG_FILE = "/disk/security.log"
+local DARK_MODE_FILE = "/disk/.darkmode.cfg"
 
--- Utility function to draw a centered popup window with a text-based border
-local function drawPopupWindow(headerText, contentLines, windowWidth, windowHeight)
-    term.clear()
-    local w, h = term.getSize()
+-- Dynamic Theme Configuration
+local theme = {}
 
-    -- Determine dimensions of the popup
-    local maxLength = #headerText
-    for _, line in ipairs(contentLines) do
-        maxLength = math.max(maxLength, #line)
-    end
-    windowWidth = windowWidth or (maxLength + 4)
-    windowHeight = windowHeight or (#contentLines + 4)
+if fs.exists(DARK_MODE_FILE) then
+    -- Dark Mode Theme
+    theme = {
+        bg              = colors.black,
+        text            = colors.lightGray,
+        titleBg         = colors.blue,
+        titleText       = colors.white,
+        btnBg           = colors.gray,
+        btnText         = colors.white,
+        inputBg         = colors.gray,
+        inputText       = colors.white,
+        errorText       = colors.red,
+        successText     = colors.lime,
+        footerBg        = colors.gray,
+        rebootBtn       = colors.orange,
+        shutdownBtn     = colors.red,
+        popupTitleBg    = colors.red,
+        popupTitleText  = colors.white,
+        popupBg         = colors.gray,
+        popupText       = colors.white
+    }
+else
+    -- Light Mode Theme
+    theme = {
+        bg              = colors.white,
+        text            = colors.gray,
+        titleBg         = colors.blue,
+        titleText       = colors.white,
+        btnBg           = colors.lightBlue,
+        btnText         = colors.white,
+        inputBg         = colors.lightGray,
+        inputText       = colors.black,
+        errorText       = colors.red,
+        successText     = colors.green,
+        footerBg        = colors.lightGray,
+        rebootBtn       = colors.orange,
+        shutdownBtn     = colors.red,
+        popupTitleBg    = colors.red,
+        popupTitleText  = colors.white,
+        popupBg         = colors.lightGray,
+        popupText       = colors.black
+    }
+end
 
-    local xStart = math.floor(w / 2 - windowWidth / 2)
-    local yStart = math.floor(h / 2 - windowHeight / 2)
+local w, h = term.getSize()
 
-    -- Draw border with animation
-    term.setCursorPos(xStart, yStart)
-    term.write("+" .. string.rep("-", windowWidth - 2) .. "+")
-    for i = 1, windowHeight - 2 do
-        term.setCursorPos(xStart, yStart + i)
-        term.write("|" .. string.rep(" ", windowWidth - 2) .. "|")
-        os.sleep(0.05)
-    end
-    term.setCursorPos(xStart, yStart + windowHeight - 1)
-    term.write("+" .. string.rep("-", windowWidth - 2) .. "+")
+-- Global State Variables
+local appState = "INIT" 
+local targetUser = ""
+local inputBuffer = ""
+local isFocused = false
+local passwordAttempts = 0
+local clickables = {}
+local clockTimer = os.startTimer(1)
 
-    -- Draw header
-    term.setCursorPos(xStart + 2, yStart + 1)
-    term.write(headerText)
+-- Popup Window State
+local errorPopup = {
+    active = false,
+    msg = "",
+    x = 10,
+    y = 5,
+    w = 26,
+    h = 5,
+    dragging = false,
+    dragOffsetX = 0,
+    dragOffsetY = 0
+}
 
-    -- Draw content
-    for i, line in ipairs(contentLines) do
-        term.setCursorPos(xStart + 2, yStart + 1 + i + 1)
-        term.write(line)
-        os.sleep(0.05)
+-- Utility: Logging
+local function logEvent(action)
+    local timeStr = textutils.formatTime(os.time(), false)
+    local file = fs.open(SECURITY_LOG_FILE, "a")
+    if file then
+        file.write("[" .. timeStr .. "] " .. action .. "\n")
+        file.close()
     end
 end
 
--- Function to list all users
+-- Utility: File System & Logic
 local function listUsers()
+    if not fs.exists(USERS_FOLDER) then return {} end
     local users = fs.list(USERS_FOLDER)
     local usernames = {}
     for _, user in ipairs(users) do
@@ -60,39 +106,6 @@ local function listUsers()
     return usernames
 end
 
--- Function to handle user selection from the list
-local function drawUsersScreen(usernames, selectedIndex)
-    local contentLines = {}
-    for i, username in ipairs(usernames) do
-        if i == selectedIndex then
-            table.insert(contentLines, "> " .. username)
-        else
-            table.insert(contentLines, "  " .. username)
-        end
-    end
-    drawPopupWindow("Select your user account:", contentLines, 30, #contentLines + 4)
-end
-
--- Function to select a user from the list interactively
-local function selectUserFromList()
-    local usernames = listUsers()
-    local selectedIndex = 1
-
-    while true do
-        drawUsersScreen(usernames, selectedIndex)
-
-        local event, key = os.pullEvent("key")
-        if key == keys.up then
-            selectedIndex = math.max(1, selectedIndex - 1)
-        elseif key == keys.down then
-            selectedIndex = math.min(#usernames, selectedIndex + 1)
-        elseif key == keys.enter then
-            return usernames[selectedIndex]
-        end
-    end
-end
-
--- Function to get user credentials
 local function getUserCredentials(username)
     local passwordFile = fs.combine(USERS_FOLDER .. username, "password.txt")
     if fs.exists(passwordFile) then
@@ -100,175 +113,423 @@ local function getUserCredentials(username)
         local storedPassword = file.readLine()
         file.close()
         return storedPassword
-    else
-        return nil
     end
+    return nil
 end
 
--- Function to save the current user
 local function saveCurrentUser(username)
-    if fs.exists(CURRENT_USER_FILE) then
-        fs.delete(CURRENT_USER_FILE)
-    end
+    if fs.exists(CURRENT_USER_FILE) then fs.delete(CURRENT_USER_FILE) end
     local file = fs.open(CURRENT_USER_FILE, "w")
     file.write(username)
     file.close()
 end
 
--- Function to lock out user
 local function lockoutUser(username)
     local disabledFile = fs.combine(USERS_FOLDER .. username, "disabled.txt")
     local file = fs.open(disabledFile, "w")
     file.close()
+    logEvent("LOCKOUT: User '" .. username .. "' exceeded max attempts.")
 end
 
--- Function to check if user is disabled
 local function checkDisabled(username)
     local disabledFile = fs.combine(USERS_FOLDER .. username, "disabled.txt")
     return fs.exists(disabledFile)
 end
 
--- Function to handle user login process
-local function checkCredentials(username)
-    if checkDisabled(username) then
-        drawPopupWindow("Doggy OS Account Lockout Service", {"This user account has been disabled."})
-        os.sleep(2)
-        return false
-    end
-
-    local storedPassword = getUserCredentials(username)
-    if not storedPassword then
-        drawPopupWindow("Doggy OS Login Failure", {"User account doesn't exist or is corrupted."})
-        os.sleep(3)
-        return false
-    end
-
-    local attempts = 0
-    repeat
-        drawPopupWindow("Login to Doggy OS", {"Username: " .. username, "Attempts left: " .. (MAX_ATTEMPTS - attempts), "", "Enter password:"})
-        term.setCursorPos(1, select(2, term.getSize()))
-        term.write(":")
-        local enteredPassword = read("*")
-        attempts = attempts + 1
-
-        if enteredPassword == storedPassword then
-            saveCurrentUser(username)
-            return true
-        else
-            drawPopupWindow("Access Denied", {"Incorrect Password"})
-            os.sleep(2)
-        end
-    until attempts >= MAX_ATTEMPTS
-
-    lockoutUser(username)
-    drawPopupWindow("Doggy OS Account Lockout Service", {"Too many incorrect attempts."})
-    os.sleep(2)
-    return false
-end
-
--- Function to check for connected disks and retrieve IDs
 local function checkDiskIDs()
     local peripherals = peripheral.getNames()
     local diskIDs = {}
-
     for _, name in ipairs(peripherals) do
         if peripheral.getType(name) == "drive" then
             local diskID = disk.getID(name)
-            if diskID then
-                table.insert(diskIDs, {id = diskID, name = name})
-            end
+            if diskID then table.insert(diskIDs, {id = diskID, name = name}) end
         end
     end
-
-    if #diskIDs > 0 then
-        return diskIDs
-    else
-        return nil
-    end
+    return #diskIDs > 0 and diskIDs or nil
 end
 
--- Function to prompt for security card insertion
-local function drawSecurityCardPrompt()
-    local contentLines = {
-        "Insert a valid security card to login",
-        "To login with a password press (ENTER)"
-    }
-    drawPopupWindow("Doggy OS Security", contentLines)
-end
-
--- Function to display an error message
-local function drawErrorMessage(message)
-    drawPopupWindow("Doggy OS Login Failure", {message})
-end
-
--- Function to eject a disk
 local function ejectDisk(diskName)
     peripheral.call(diskName, "ejectDisk")
 end
 
--- Function to handle security card login
-local function insertSecurityCard(username)
-    local idFolder = fs.combine(USERS_FOLDER .. username, "ID")
-    if not fs.exists(idFolder) then
-        return false
+-- GUI Drawing Engine
+local function registerClickable(id, x, y, cw, ch)
+    table.insert(clickables, {id = id, x = x, y = y, w = cw, h = ch})
+end
+
+local function drawText(text, x, y, txtColor, bgColor)
+    term.setCursorPos(x, y)
+    term.setTextColor(txtColor or theme.text)
+    term.setBackgroundColor(bgColor or theme.bg)
+    term.write(text)
+end
+
+local function drawButton(id, label, x, y, width, bgColor, txtColor)
+    term.setCursorPos(x, y)
+    term.setBackgroundColor(bgColor or theme.btnBg)
+    term.setTextColor(txtColor or theme.btnText)
+    
+    local padding = math.max(0, math.floor((width - #label) / 2))
+    local displayStr = string.rep(" ", padding) .. label
+    displayStr = displayStr .. string.rep(" ", width - #displayStr)
+    
+    term.write(displayStr)
+    registerClickable(id, x, y, width, 1)
+end
+
+local function drawInputBox(id, x, y, width, isPassword)
+    term.setCursorPos(x, y)
+    term.setBackgroundColor(theme.inputBg)
+    term.setTextColor(theme.inputText)
+    
+    local display = inputBuffer
+    if isPassword then
+        display = string.rep("*", #display)
     end
     
+    if #display > width - 1 then
+        display = string.sub(display, #display - width + 2)
+    end
+    
+    display = display .. string.rep(" ", width - #display)
+    term.write(display)
+    registerClickable(id, x, y, width, 1)
+
+    if isFocused and not errorPopup.active then
+        local cursorX = x + math.min(#inputBuffer, width - 1)
+        term.setCursorPos(cursorX, y)
+        term.setCursorBlink(true)
+    else
+        term.setCursorBlink(false)
+    end
+end
+
+-- Popup Functions
+local function triggerError(msg)
+    isFocused = false
+    errorPopup.msg = msg
+    errorPopup.active = true
+    errorPopup.w = math.max(20, #msg + 4)
+    errorPopup.x = math.floor((w / 2) - (errorPopup.w / 2))
+    errorPopup.y = math.floor((h / 2) - (errorPopup.h / 2))
+end
+
+local function drawPopup()
+    if not errorPopup.active then return end
+
+    -- Draw Title Bar
+    term.setCursorPos(errorPopup.x, errorPopup.y)
+    term.setBackgroundColor(theme.popupTitleBg)
+    term.setTextColor(theme.popupTitleText)
+    term.write(" Error" .. string.rep(" ", errorPopup.w - 9) .. "[X]")
+
+    -- Draw Body
+    term.setBackgroundColor(theme.popupBg)
+    term.setTextColor(theme.popupText)
+    for i = 1, errorPopup.h - 1 do
+        term.setCursorPos(errorPopup.x, errorPopup.y + i)
+        term.write(string.rep(" ", errorPopup.w))
+    end
+    
+    -- Draw Message
+    local textX = errorPopup.x + math.floor((errorPopup.w / 2) - (#errorPopup.msg / 2))
+    term.setCursorPos(textX, errorPopup.y + 2)
+    term.write(errorPopup.msg)
+end
+
+-- Standard Header & Footer
+local function drawOSFrames()
+    -- Top Header
+    term.setBackgroundColor(theme.titleBg)
+    term.setTextColor(theme.titleText)
+    term.setCursorPos(1, 1)
+    term.write(string.rep(" ", w))
+    term.setCursorPos(2, 1)
+    term.write("Doggy OS Security")
+    
+    local timeStr = textutils.formatTime(os.time(), false)
+    term.setCursorPos(w - #timeStr, 1)
+    term.write(timeStr)
+
+    -- Bottom Footer
+    term.setBackgroundColor(theme.footerBg)
+    term.setTextColor(theme.titleText)
+    term.setCursorPos(1, h)
+    term.write(string.rep(" ", w))
+    term.setCursorPos(2, h)
+    term.write(OS_VERSION)
+    
+    drawButton("btn_reboot", " Reboot ", w - 21, h, 10, theme.rebootBtn, colors.white)
+    drawButton("btn_shutdown", " Shutdown ", w - 10, h, 10, theme.shutdownBtn, colors.white)
+end
+
+-- Screen Rendering
+local function renderScreen()
+    term.setBackgroundColor(theme.bg)
+    term.clear()
+    clickables = {}
+
+    drawOSFrames()
+
+    -- Content Frame
+    term.setBackgroundColor(theme.bg)
+    
+    if appState == "USER_LIST" then
+        drawText("Select an Account", 4, 4, theme.titleBg, theme.titleText)
+        local users = listUsers()
+        
+        if #users == 0 then
+            drawText("No accounts found.", 4, 6, theme.errorText)
+        else
+            for i, user in ipairs(users) do
+                local yPos = 6 + (i - 1) * 2
+                if yPos < h - 2 then
+                    drawButton("user_" .. user, "  " .. user, 4, yPos, 26)
+                end
+            end
+        end
+
+    elseif appState == "MANUAL_USER" then
+        drawText("Sign In to Doggy OS", 4, 4, theme.titleBg, theme.titleText)
+        drawText("Enter Username:", 4, 7, theme.text)
+        drawInputBox("input_user", 4, 8, 24, false)
+        drawButton("btn_next", "Next", 4, 10, 10)
+
+    elseif appState == "CARD_CHECK" then
+        drawText("Security Authentication", 4, 4, theme.titleBg, theme.titleText)
+        drawText("Account: " .. targetUser, 4, 6, theme.text)
+        drawText("Please insert your security card.", 4, 8, theme.titleBg, theme.titleText)
+        drawButton("btn_use_pass", "Use Password Instead", 4, 11, 24)
+
+    elseif appState == "PASSWORD" then
+        drawText("Authentication Required", 4, 4, theme.titleBg, theme.titleText)
+        drawText("Account: " .. targetUser, 4, 6, theme.text)
+        drawText("Enter Password:", 4, 8, theme.text)
+        drawInputBox("input_pass", 4, 9, 24, true)
+        drawButton("btn_login", "Login", 4, 11, 10)
+        drawButton("btn_back", "Back", 16, 11, 8)
+        
+        if passwordAttempts > 0 then
+            drawText("Attempts left: " .. (MAX_ATTEMPTS - passwordAttempts), 4, 13, theme.errorText)
+        end
+        
+    elseif appState == "SUCCESS" then
+        drawText("Welcome, " .. targetUser .. "!", 4, 6, theme.successText)
+        drawText("Starting Doggy OS...", 4, 8, theme.text)
+        
+    elseif appState == "LOCKED" then
+        drawText("Security Lockout", 4, 5, theme.errorText)
+        drawText("This account has been disabled.", 4, 7, theme.text)
+        drawButton("btn_restart", "Return", 4, 10, 10)
+    end
+
+    drawPopup()
+end
+
+-- Core Logic Handlers
+local function handleLoginAttempt()
+    if checkDisabled(targetUser) then
+        appState = "LOCKED"
+        return
+    end
+
+    local storedPassword = getUserCredentials(targetUser)
+    if not storedPassword then
+        triggerError("Account is corrupted.")
+        return
+    end
+
+    if inputBuffer == storedPassword then
+        logEvent("LOGIN SUCCESS: User '" .. targetUser .. "' logged in via password.")
+        saveCurrentUser(targetUser)
+        appState = "SUCCESS"
+    else
+        passwordAttempts = passwordAttempts + 1
+        logEvent("FAILED LOGIN: User '" .. targetUser .. "' (Attempt " .. passwordAttempts .. "/" .. MAX_ATTEMPTS .. ")")
+        inputBuffer = ""
+        isFocused = true
+        if passwordAttempts >= MAX_ATTEMPTS then
+            lockoutUser(targetUser)
+            appState = "LOCKED"
+        else
+            triggerError("Incorrect Password!")
+        end
+    end
+end
+
+local function transitionToCardOrPass()
+    inputBuffer = ""
+    isFocused = false
+    passwordAttempts = 0
+    
+    if checkDisabled(targetUser) then
+        appState = "LOCKED"
+        return
+    end
+
+    local idFolder = fs.combine(USERS_FOLDER .. targetUser, "ID")
+    if fs.exists(idFolder) then
+        appState = "CARD_CHECK"
+    else
+        appState = "PASSWORD"
+        isFocused = true
+    end
+end
+
+-- Main Event Loop
+local function runGUI()
+    if fs.exists(SHOW_ALL_USERS_FILE) then
+        appState = "USER_LIST"
+    else
+        appState = "MANUAL_USER"
+        isFocused = true
+    end
+
     while true do
-        drawSecurityCardPrompt()
+        renderScreen()
+
+        if appState == "SUCCESS" then
+            term.setCursorBlink(false)
+            os.sleep(1.5)
+            term.setBackgroundColor(colors.black)
+            term.setTextColor(colors.white)
+            term.clear()
+            term.setCursorPos(1,1)
+            shell.run("/disk/os/gui")
+            return
+        end
         
-        local event, key = os.pullEvent()
-        
-        if event == "key" and key == keys.enter then
-            return false  -- Allow password login if enter is pressed
-        elseif event == "disk" or event == "disk_insert" then
-            local diskIDs = checkDiskIDs()
-            if diskIDs then
-                for _, disk in ipairs(diskIDs) do
-                    ejectDisk(disk.name)  -- Eject the disk after checking
-                    local idFile = fs.combine(idFolder, tostring(disk.id) .. ".file")
-                    if fs.exists(idFile) then
-                        return true  -- Allow access if a valid security ID is found
+        local event, p1, p2, p3 = os.pullEvent()
+
+        if event == "timer" and p1 == clockTimer then
+            clockTimer = os.startTimer(1) -- Refresh screen for the clock
+        end
+
+        if event == "mouse_click" then
+            local mb, mx, my = p1, p2, p3
+            
+            -- Intercept clicks for popup window
+            if errorPopup.active then
+                if mx >= errorPopup.x and mx < errorPopup.x + errorPopup.w and my >= errorPopup.y and my < errorPopup.y + errorPopup.h then
+                    if my == errorPopup.y then
+                        -- Clicked Title bar
+                        if mx >= errorPopup.x + errorPopup.w - 3 then
+                            -- Clicked [X]
+                            errorPopup.active = false
+                            if appState == "MANUAL_USER" or appState == "PASSWORD" then isFocused = true end
+                        else
+                            -- Start dragging
+                            errorPopup.dragging = true
+                            errorPopup.dragOffsetX = mx - errorPopup.x
+                            errorPopup.dragOffsetY = my - errorPopup.y
+                        end
                     end
                 end
-                drawErrorMessage("False Security Card Credintials")
-                os.sleep(3)
+            else
+                -- Normal interaction
+                local clickedId = nil
+                for _, item in ipairs(clickables) do
+                    if mx >= item.x and mx < item.x + item.w and my >= item.y and my < item.y + item.h then
+                        clickedId = item.id
+                        break
+                    end
+                end
+
+                isFocused = (clickedId == "input_user" or clickedId == "input_pass")
+
+                if clickedId then
+                    if string.sub(clickedId, 1, 5) == "user_" then
+                        targetUser = string.sub(clickedId, 6)
+                        transitionToCardOrPass()
+                    elseif clickedId == "btn_next" and inputBuffer ~= "" then
+                        targetUser = inputBuffer
+                        transitionToCardOrPass()
+                    elseif clickedId == "btn_use_pass" then
+                        appState = "PASSWORD"
+                        isFocused = true
+                    elseif clickedId == "btn_login" then
+                        handleLoginAttempt()
+                    elseif clickedId == "btn_back" or clickedId == "btn_restart" then
+                        targetUser = ""
+                        inputBuffer = ""
+                        passwordAttempts = 0
+                        if fs.exists(SHOW_ALL_USERS_FILE) then
+                            appState = "USER_LIST"
+                            isFocused = false
+                        else
+                            appState = "MANUAL_USER"
+                            isFocused = true
+                        end
+                    elseif clickedId == "btn_reboot" then
+                        os.reboot()
+                    elseif clickedId == "btn_shutdown" then
+                        os.shutdown()
+                    end
+                end
+            end
+
+        elseif event == "mouse_drag" then
+            if errorPopup.dragging then
+                local mx, my = p2, p3
+                errorPopup.x = mx - errorPopup.dragOffsetX
+                errorPopup.y = my - errorPopup.dragOffsetY
+                
+                -- Clamp to screen borders
+                errorPopup.x = math.max(1, math.min(w - errorPopup.w + 1, errorPopup.x))
+                errorPopup.y = math.max(1, math.min(h - errorPopup.h + 1, errorPopup.y))
+            end
+
+        elseif event == "mouse_up" then
+            errorPopup.dragging = false
+
+        elseif event == "char" then
+            if isFocused and not errorPopup.active and appState ~= "LOCKED" then
+                inputBuffer = inputBuffer .. p1
+            end
+
+        elseif event == "key" then
+            if isFocused and not errorPopup.active then
+                if p1 == keys.backspace and #inputBuffer > 0 then
+                    inputBuffer = string.sub(inputBuffer, 1, -2)
+                elseif p1 == keys.enter then
+                    if appState == "MANUAL_USER" and inputBuffer ~= "" then
+                        targetUser = inputBuffer
+                        transitionToCardOrPass()
+                    elseif appState == "PASSWORD" then
+                        handleLoginAttempt()
+                    end
+                end
+            end
+
+        elseif event == "disk" or event == "disk_insert" then
+            if appState == "CARD_CHECK" and not errorPopup.active then
+                local diskIDs = checkDiskIDs()
+                if diskIDs then
+                    local idFolder = fs.combine(USERS_FOLDER .. targetUser, "ID")
+                    local verified = false
+                    
+                    for _, diskInfo in ipairs(diskIDs) do
+                        ejectDisk(diskInfo.name)
+                        local idFile = fs.combine(idFolder, tostring(diskInfo.id) .. ".file")
+                        if fs.exists(idFile) then
+                            verified = true
+                        end
+                    end
+                    
+                    if verified then
+                        logEvent("LOGIN SUCCESS: User '" .. targetUser .. "' via security card.")
+                        saveCurrentUser(targetUser)
+                        appState = "SUCCESS"
+                    else
+                        logEvent("FAILED LOGIN: Invalid security card used for '" .. targetUser .. "'.")
+                        triggerError("Invalid Security Card.")
+                    end
+                end
             end
         end
     end
 end
 
--- Main function for login process
-local function main()
-    term.setTextColor(colors.white)
-    term.setBackgroundColor(colors.black)
-    term.clear()
-
-    local username
-
-    if fs.exists(SHOW_ALL_USERS_FILE) then
-        username = selectUserFromList()
-    else
-        drawPopupWindow("Protected by Doggy OS Security", {"Enter username:"})
-        username = read()
-    end
-
-    -- Attempt security card login first
-    if insertSecurityCard(username) then
-        drawPopupWindow("Access Granted", {"Security card verified. Welcome, " .. username .. "!"})
-        os.sleep(2)
-        saveCurrentUser(username)
-        shell.run("/disk/os/gui")
-        return
-    end
-
-    -- Fallback to password login if card verification fails or is bypassed
-    if checkCredentials(username) then
-        drawPopupWindow("Access Granted", {"Welcome, " .. username .. "!"})
-        os.sleep(2)
-        shell.run("/disk/os/gui")
-    else
-        shell.run("/disk/os/lock.lua")
-    end
-end
-
-main()
+-- Initialization
+term.clear()
+runGUI()
